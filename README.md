@@ -3,14 +3,14 @@ active_record_slave
 
 * http://github.com/ClarityServices/active_record_slave
 
-### Introduction
+## Introduction
 
 active_record_slave allows all database reads to go to a slave while ensuring
 that all writes go to the master database. Also, active_record_slave ensures that
 any reads that are performed in a transaction will always go to the master
 database to ensure data consistency.
 
-### Features
+## Features
 
 * Redirecting reads to a single slave database
 * Supports all Rails 3 read apis, including dynamic finders, AREL, and ActiveRecord::Base.select
@@ -25,34 +25,36 @@ database to ensure data consistency.
 * Debug logs include 'Slave: ' prefix to indicate which SQL statements are going
   to the slave database
 
-# For Example the following code:
+### Example showing Slave redirected read
     r = Role.where(:name => "manager").first
     r.description = 'Manager'
     r.save!
 
-Results in:
+Log file output:
+
     03-13-12 05:56:05 pm,[2608],b[0],[0],  Slave: Role Load (3.0ms)  SELECT `roles`.* FROM `roles` WHERE `roles`.`name` = 'manager' LIMIT 1
     03-13-12 05:56:22 pm,[2608],b[0],[0],  AREL (12.0ms)  UPDATE `roles` SET `description` = 'Manager' WHERE `roles`.`id` = 5
 
-# Example code showing use of a transaction and reads going to the master:
+### Example showing how reads within a transaction go to the master
     Role.transaction do
       r = Role.where(:name => "manager").first
       r.description = 'Manager'
       r.save!
     end
 
-Results in:
+Log file output:
+
     03-13-12 06:02:09 pm,[2608],b[0],[0],  Role Load (2.0ms)  SELECT `roles`.* FROM `roles` WHERE `roles`.`name` = 'manager' LIMIT 1
     03-13-12 06:02:09 pm,[2608],b[0],[0],  AREL (2.0ms)  UPDATE `roles` SET `description` = 'Manager' WHERE `roles`.`id` = 4
 
-### Requirements
+## Requirements
 
 * Rails 3 or greater
 
 May also work with Rails 2. Anyone want to give it a try and let me know?
 Happy to make it work with Rails 2 if anyone needs it
 
-### Note
+## Note
 
 ActiveRecord::Base.execute is commonly used to perform custom SQL calls against
 the database that bypasses ActiveRecord. It is necessary to replace these calls
@@ -62,11 +64,11 @@ active_record_slave and redirected to the slave.
 This is because ActiveRecord::Base.execute can also be used for database updates
 which we do not want redirected to the slave
 
-### Install
+## Install
 
   gem install active_record_slave
 
-### Configuration
+## Configuration
 
 To enable slave reads for any environment just add a _slave:_ entry to database.yml
 along with all the usual ActiveRecord database configuration options.
@@ -111,7 +113,7 @@ slave reads only on the linux host 'batch':
         pool:     20
     <% end %>
 
-### Possible Future Enhancements
+## Possible Future Enhancements
 
 * Support multiple slaves (ask for it by submitting a ticket)
 
@@ -120,7 +122,7 @@ Meta
 
 * Code: `git clone git://github.com/ClarityServices/active_record_slave.git`
 * Home: <https://github.com/ClarityServices/active_record_slave>
-* Bugs: <http://github.com/reidmorrison/active_record_slave/issues>
+* Bugs: <https://github.com/ClarityServices/active_record_slave/issues>
 * Gems: <http://rubygems.org/gems/active_record_slave>
 
 This project uses [Semantic Versioning](http://semver.org/).
