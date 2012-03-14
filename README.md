@@ -49,7 +49,7 @@ Log file output:
 
 ## Requirements
 
-* Rails 3 or greater
+* ActiveRecord 3 or greater (Rails 3 or greater)
 
 May also work with Rails 2. Anyone want to give it a try and let me know?
 Happy to make it work with Rails 2 if anyone needs it
@@ -94,6 +94,7 @@ For Example:
 
 Sometimes it is useful to turn on slave reads per host, for example to activate
 slave reads only on the linux host 'batch':
+
     development:
       database: clarity_development
       username: root
