@@ -18,5 +18,17 @@ module ActiveRecordSlave
     end
   end
 
+  # Force reads for the supplied block to read from the master database
+  # Only applies to calls made within the current thread
+  def self.read_from_master
+    # Set :master indicator in thread local storage so that it is visible
+    # during the select call
+    current = Thread.current[:active_record_slave]
+    Thread.current[:active_record_slave] = :master
+    yield
+  ensure
+    Thread.current[:active_record_slave] = current
+  end
+
 end
 
