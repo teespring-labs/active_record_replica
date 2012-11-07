@@ -20,18 +20,24 @@ database to ensure data consistency.
 * Transaction aware. Detects when a query is inside of a transaction and sends
   those reads to the master
 * Lightweight footprint
-* No overhead when a slave is not configured
-* Minimal overhead when redirecting reads to the slave
+* No overhead whatsoever when a slave is not configured
+* Negligible overhead when redirecting reads to the slave
 * Connection Pools to both databases are retained and maintained independently by ActiveRecord
 * The master and slave databases do not have to be of the same type.
   For example one can be MySQL and the other Oracle if required.
-* Debug logs include 'Slave: ' prefix to indicate which SQL statements are going
+* Debug logs include a prefix of 'Slave: ' to indicate which SQL statements are going
   to the slave database
 
 ### Example showing Slave redirected read
-    r = Role.where(:name => "manager").first
-    r.description = 'Manager'
-    r.save!
+
+```ruby
+# Read from the slave database
+r = Role.where(:name => "manager").first
+r.description = 'Manager'
+
+# Save changes back to the master database
+r.save!
+```
 
 Log file output:
 
@@ -39,11 +45,14 @@ Log file output:
     03-13-12 05:56:22 pm,[2608],b[0],[0],  AREL (12.0ms)  UPDATE `roles` SET `description` = 'Manager' WHERE `roles`.`id` = 5
 
 ### Example showing how reads within a transaction go to the master
-    Role.transaction do
-      r = Role.where(:name => "manager").first
-      r.description = 'Manager'
-      r.save!
-    end
+
+```ruby
+Role.transaction do
+  r = Role.where(:name => "manager").first
+  r.description = 'Manager'
+  r.save!
+end
+```
 
 Log file output:
 
@@ -87,13 +96,10 @@ D, [2012-11-06T19:43:26.892697 #89002] DEBUG -- :    (0.9ms)  commit transaction
 
 * ActiveRecord 3 or greater (Rails 3 or greater)
 
-May also work with Rails 2. Anyone want to give it a try and let me know?
-Happy to make it work with Rails 2 if anyone needs it
-
 ## Note
 
-ActiveRecord::Base.execute is commonly used to perform custom SQL calls against
-the database that bypasses ActiveRecord. It is necessary to replace these calls
+ActiveRecord::Base.execute is sometimes used to perform custom SQL calls against
+the database to bypass ActiveRecord. It is necessary to replace these calls
 with the standard ActiveRecord::Base.select call for them to be picked up by
 active_record_slave and redirected to the slave.
 
@@ -111,51 +117,48 @@ along with all the usual ActiveRecord database configuration options.
 
 For Example:
 
-    development:
-      database: clarity_development
-      username: root
-      password:
-      encoding: utf8
-      adapter:  mysql
-      host:     127.0.0.1
-      pool:     20
-      slave:
-        database: clarity_development_replica
-        username: root
-        password:
-        encoding: utf8
-        adapter:  mysql
-        host:     127.0.0.1
-        pool:     20
+```yaml
+development:
+  database: clarity_development
+  username: root
+  password:
+  encoding: utf8
+  adapter:  mysql
+  host:     127.0.0.1
+  pool:     20
+  slave:
+    database: clarity_development_replica
+    username: root
+    password:
+    encoding: utf8
+    adapter:  mysql
+    host:     127.0.0.1
+    pool:     20
+```
 
 Sometimes it is useful to turn on slave reads per host, for example to activate
 slave reads only on the linux host 'batch':
 
-    development:
-      database: clarity_development
-      username: root
-      password:
-      encoding: utf8
-      adapter:  mysql
-      host:     127.0.0.1
-      pool:     20
-    <% if `hostname`.strip == 'batch' %>
-      slave:
-        database: clarity_development_replica
-        username: root
-        password:
-        encoding: utf8
-        adapter:  mysql
-        host:     127.0.0.1
-        pool:     20
-    <% end %>
-
-## Tests
-
-* active_record_slave is running in a large production system and was tested
-  directly as part of that solution
-* I welcome anyone that can submit tests to verify this gem in a standalone outside
-  environment
+```yaml
+development:
+  database: clarity_development
+  username: root
+  password:
+  encoding: utf8
+  adapter:  mysql
+  host:     127.0.0.1
+  pool:     20
+<% if `hostname`.strip == 'batch' %>
+  slave:
+    database: clarity_development_replica
+    username: root
+    password:
+    encoding: utf8
+    adapter:  mysql
+    host:     127.0.0.1
+    pool:     20
+<% end %>
+```
 
 ## Possible Future Enhancements
 
