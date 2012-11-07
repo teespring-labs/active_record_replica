@@ -1,0 +1,12 @@
+test:
+  adapter:  sqlite3
+  database: test/db/test.sqlite3
+  pool:     5
+  timeout:  5000
+  # Make the slave a separate database that is not slaved to ensure reads
+  # and writes go to the appropriate databases
+  slave:
+    adapter:  sqlite3
+    database: test/db/test_slave.sqlite3
+    pool:     5
+    timeout:  5000

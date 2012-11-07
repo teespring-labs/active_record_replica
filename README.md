@@ -1,6 +1,8 @@
 active_record_slave
 ===================
 
+ActiveRecord drop-in solution to efficiently redirect reads to slave databases
+
 * http://github.com/ClarityServices/active_record_slave
 
 ## Introduction
@@ -13,6 +15,7 @@ database to ensure data consistency.
 ## Features
 
 * Redirecting reads to a single slave database
+* Works with any database driver that works with ActiveRecord
 * Supports all Rails 3 read apis, including dynamic finders, AREL, and ActiveRecord::Base.select
 * Transaction aware. Detects when a query is inside of a transaction and sends
   those reads to the master
@@ -46,6 +49,39 @@ Log file output:
 
     03-13-12 06:02:09 pm,[2608],b[0],[0],  Role Load (2.0ms)  SELECT `roles`.* FROM `roles` WHERE `roles`.`name` = 'manager' LIMIT 1
     03-13-12 06:02:09 pm,[2608],b[0],[0],  AREL (2.0ms)  UPDATE `roles` SET `description` = 'Manager' WHERE `roles`.`id` = 4
+
+### Forcing a read against the master
+
+Sometimes it is necessary to read from the master:
+
+```ruby
+ActiveRecordSlave.read_from_master do
+  r = Role.where(:name => "manager").first
+end
+```
+
+## Usage Notes
+
+### delete_all
+
+Delete all executes against the master database since it is only a delete:
+
+```
+D, [2012-11-06T19:47:29.125932 #89772] DEBUG -- :   SQL (1.0ms)  DELETE FROM "users"
+```
+
+### destroy_all
+
+First performs a read against the slave database and then deletes the corresponding
+data from the master
+
+```
+D, [2012-11-06T19:43:26.890674 #89002] DEBUG -- :   Slave: User Load (0.1ms)  SELECT "users".* FROM "users"
+D, [2012-11-06T19:43:26.890972 #89002] DEBUG -- :    (0.0ms)  begin transaction
+D, [2012-11-06T19:43:26.891667 #89002] DEBUG -- :   SQL (0.4ms)  DELETE FROM "users" WHERE "users"."id" = ?  [["id", 3]]
+D, [2012-11-06T19:43:26.892697 #89002] DEBUG -- :    (0.9ms)  commit transaction
+```
+
 
 ## Requirements
 
@@ -114,9 +150,16 @@ slave reads only on the linux host 'batch':
         pool:     20
     <% end %>
 
+## Tests
+
+* active_record_slave is running in a large production system and was tested
+  directly as part of that solution
+* I welcome anyone that can submit tests to verify this gem in a standalone outside
+  environment
+
 ## Possible Future Enhancements
 
-* Support multiple slaves (ask for it by submitting a ticket)
+* Support for multiple slaves (ask for it by submitting a ticket)
 
 Meta
 ----

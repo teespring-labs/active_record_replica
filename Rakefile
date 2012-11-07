@@ -18,7 +18,7 @@ task :gem  do |t|
     s.date        = Date.today.to_s
     s.summary     = "ActiveRecord read from slave"
     s.description = "ActiveRecordSlave is a library to seamlessly enable reading from database slaves in a Rails 3 project, written in Ruby."
-    s.files       = FileList["./**/*"].exclude('*.gem', 'nbproject').map{|f| f.sub(/^\.\//, '')}
+    s.files       = FileList["./**/*"].exclude(/.gem$/, /.log$/,/nbproject/,/sqlite3$/).map{|f| f.sub(/^\.\//, '')}
     s.has_rdoc    = true
     #s.add_dependency 'activerecord', '>= 3.0.0'
   end

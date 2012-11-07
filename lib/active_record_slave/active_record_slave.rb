@@ -4,17 +4,30 @@
 module ActiveRecordSlave
 
   # Install ActiveRecord::Slave into ActiveRecord to redirect reads to the slave
-  # By default, only the default Database adapter (ActiveRecord::Base.connection.class)
-  # is extended with slave read capabilities
-  def self.install!(adapter_class = nil)
-    if slave_config = ActiveRecord::Base.connection.config[:slave]
-      Rails.logger.info "ActiveRecordSlave.install! v#{ActiveRecordSlave::VERSION} Establishing connection to slave database"
+  # Parameters:
+  #   adapter_class:
+  #     By default, only the default Database adapter (ActiveRecord::Base.connection.class)
+  #     is extended with slave read capabilities
+  #
+  #   environment:
+  #     In a non-Rails environment, supply the environment such as
+  #     'development', 'production'
+  def self.install!(adapter_class = nil, environment = nil)
+    slave_config = if ActiveRecord::Base.connection.respond_to?(:config)
+      ActiveRecord::Base.connection.config[:slave]
+    else
+      ActiveRecord::Base.configurations[environment || Rails.env]['slave']
+    end
+    if slave_config
+      ActiveRecord::Base.logger.info "ActiveRecordSlave.install! v#{ActiveRecordSlave::VERSION} Establishing connection to slave database"
       Slave.establish_connection(slave_config)
 
       # Inject a new #select method into the ActiveRecord Database adapter
       base = adapter_class || ActiveRecord::Base.connection.class
       base.send(:include, InstanceMethods)
       base.alias_method_chain(:select, :slave_reader)
+    else
+      ActiveRecord::Base.logger.info "ActiveRecordSlave no slave database defined"
     end
   end
 
