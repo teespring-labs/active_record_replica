@@ -3,7 +3,7 @@ active_record_slave
 
 ActiveRecord drop-in solution to efficiently redirect reads to slave databases
 
-* http://github.com/ClarityServices/active_record_slave
+* http://github.com/reidmorrison/active_record_slave
 
 ## Introduction
 
@@ -91,10 +91,11 @@ D, [2012-11-06T19:43:26.891667 #89002] DEBUG -- :   SQL (0.4ms)  DELETE FROM "us
 D, [2012-11-06T19:43:26.892697 #89002] DEBUG -- :    (0.9ms)  commit transaction
 ```
 
+## Dependencies
 
-## Requirements
+* Tested on Rails 3 and Rails 4
 
-* ActiveRecord 3 or greater (Rails 3 or greater)
+See [.travis.yml](https://github.com/reidmorrison/active_record_slave/.travis.yml) for the list of tested Ruby platforms
 
 ## Note
 
@@ -119,7 +120,7 @@ For Example:
 
 ```yaml
 development:
-  database: clarity_development
+  database: myapp_development
   username: root
   password:
   encoding: utf8
@@ -127,7 +128,7 @@ development:
   host:     127.0.0.1
   pool:     20
   slave:
-    database: clarity_development_replica
+    database: myapp_development_replica
     username: root
     password:
     encoding: utf8
@@ -141,7 +142,7 @@ slave reads only on the linux host 'batch':
 
 ```yaml
 development:
-  database: clarity_development
+  database: myapp_development
   username: root
   password:
   encoding: utf8
@@ -150,7 +151,7 @@ development:
   pool:     20
 <% if `hostname`.strip == 'batch' %>
   slave:
-    database: clarity_development_replica
+    database: myapp_development_replica
     username: root
     password:
     encoding: utf8
@@ -162,14 +163,14 @@ development:
 
 ## Possible Future Enhancements
 
-* Support for multiple slaves (ask for it by submitting a ticket)
+* Support for multiple slaves (ask for it by submitting an issue)
 
 Meta
 ----
 
-* Code: `git clone git://github.com/ClarityServices/active_record_slave.git`
-* Home: <https://github.com/ClarityServices/active_record_slave>
-* Bugs: <https://github.com/ClarityServices/active_record_slave/issues>
+* Code: `git clone git://github.com/reidmorrison/active_record_slave.git`
+* Home: <https://github.com/reidmorrison/active_record_slave>
+* Bugs: <https://github.com/reidmorrison/active_record_slave/issues>
 * Gems: <http://rubygems.org/gems/active_record_slave>
 
 This project uses [Semantic Versioning](http://semver.org/).
@@ -182,7 +183,7 @@ Reid Morrison :: reidmo@gmail.com :: @reidmorrison
 License
 -------
 
-Copyright 2012 Clarity Services, Inc.
+Copyright 2012, 2013, 2014 Reid Morrison
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

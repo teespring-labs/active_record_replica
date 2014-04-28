@@ -34,14 +34,49 @@ module ActiveRecordSlave
   # Force reads for the supplied block to read from the master database
   # Only applies to calls made within the current thread
   def self.read_from_master
-    # Set :master indicator in thread local storage so that it is visible
-    # during the select call
-    current = Thread.current[:active_record_slave]
-    Thread.current[:active_record_slave] = :master
-    yield
-  ensure
-    Thread.current[:active_record_slave] = current
+    return yield if read_from_master?
+    begin
+      # Set :master indicator in thread local storage so that it is visible
+      # during the select call
+      read_from_master!
+      yield
+    ensure
+      read_from_slave!
+    end
+  end
+
+  if RUBY_VERSION.to_i >= 2
+    # Fibers have their own thread local variables so use thread_variable_get
+
+    # Whether this thread is currently forcing all reads to go against the master database
+    def self.read_from_master?
+      Thread.current.thread_variable_get(:active_record_slave) == :master
+    end
+
+    # Force all subsequent reads on this thread and any fibers called by this thread to go the master
+    def self.read_from_master!
+      Thread.current.thread_variable_set(:active_record_slave, :master)
+    end
+
+    # Subsequent reads on this thread and any fibers called by this thread can go to a slave
+    def self.read_from_slave!
+      Thread.current.thread_variable_set(:active_record_slave, nil)
+    end
+  else
+    # Whether this thread is currently forcing all reads to go against the master database
+    def self.read_from_master?
+      Thread.current[:active_record_slave] == :master
+    end
+
+    # Force all subsequent reads on this thread and any fibers called by this thread to go the master
+    def self.read_from_master!
+      Thread.current[:active_record_slave] = :master
+    end
+
+    # Subsequent reads on this thread and any fibers called by this thread can go to a slave
+    def self.read_from_slave!
+      Thread.current[:active_record_slave] = nil
+    end
   end
 
 end
-
