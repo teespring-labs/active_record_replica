@@ -1,4 +1,4 @@
-active_record_slave
+active_record_slave [![Build Status](https://secure.travis-ci.org/reidmorrison/active_record_slave.png?branch=master)](http://travis-ci.org/reidmorrison/active_record_slave)
 ===================
 
 ActiveRecord drop-in solution to efficiently redirect reads to slave databases
