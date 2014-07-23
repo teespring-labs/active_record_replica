@@ -52,6 +52,8 @@ class ActiveRecordSlaveTest < Test::Unit::TestCase
   context 'the active_record_slave gem' do
 
     setup do
+      ActiveRecordSlave.ignore_transactions = false
+
       User.delete_all
 
       @name    = "Joe Bloggs"
@@ -89,7 +91,12 @@ class ActiveRecordSlaveTest < Test::Unit::TestCase
     end
 
     should "save to master, read from master when in a transaction" do
+      assert_equal false, ActiveRecordSlave.ignore_transactions?
+
       User.transaction do
+        # The delete_all in setup should have cleared the table
+        assert_equal 0, User.count
+
         # Read from Master
         assert_equal 0, User.where(:name => @name, :address => @address).count
 
@@ -99,6 +106,31 @@ class ActiveRecordSlaveTest < Test::Unit::TestCase
         # Read from Master
         assert_equal 1, User.where(:name => @name, :address => @address).count
       end
+
+      # Read from Non-replicated slave
+      assert_equal 0, User.where(:name => @name, :address => @address).count
+    end
+
+    should "save to master, read from slave when ignoring transactions" do
+      ActiveRecordSlave.ignore_transactions = true
+      assert_equal true, ActiveRecordSlave.ignore_transactions?
+
+      User.transaction do
+        # The delete_all in setup should have cleared the table
+        assert_equal 0, User.count
+
+        # Read from Master
+        assert_equal 0, User.where(:name => @name, :address => @address).count
+
+        # Write to master
+        assert_equal true, @user.save!
+
+        # Read from Non-replicated slave
+        assert_equal 0, User.where(:name => @name, :address => @address).count
+      end
+
+      # Read from Non-replicated slave
+      assert_equal 0, User.where(:name => @name, :address => @address).count
     end
 
     should "save to master, force a read from master even when _not_ in a transaction" do
