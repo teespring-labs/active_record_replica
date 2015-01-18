@@ -1,13 +1,6 @@
-# Allow examples to be run in-place without requiring a gem install
-$LOAD_PATH.unshift File.dirname(__FILE__) + '/../lib'
-
-require 'rubygems'
+require File.join(File.dirname(__FILE__), 'test_helper')
 require 'logger'
 require 'erb'
-require 'test/unit'
-require 'shoulda'
-require 'active_record'
-require 'active_record_slave'
 
 l = Logger.new('test.log')
 l.level = ::Logger::DEBUG
@@ -48,7 +41,7 @@ ActiveRecordSlave.install!(nil, 'test')
 #
 # Unit Test for active_record_slave
 #
-class ActiveRecordSlaveTest < Test::Unit::TestCase
+class ActiveRecordSlaveTest < Minitest::Test
   context 'the active_record_slave gem' do
 
     setup do

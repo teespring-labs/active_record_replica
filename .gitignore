@@ -3,3 +3,5 @@ nbproject/*
 *.gem
 .idea/*
 Gemfile.lock
+*.log
+*.sqlite3
