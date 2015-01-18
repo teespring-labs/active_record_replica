@@ -1,10 +1,6 @@
 source 'https://rubygems.org'
 
-if RUBY_VERSION.to_f == 1.9
-  gem 'activerecord', '~> 3.0'
-else
-  gem 'activerecord', '>= 4.0'
-end
+gemspec
 
 gem 'sqlite3', :platform => [:ruby, :mswin, :mingw]
 gem 'jdbc-sqlite3', :platform => :jruby
