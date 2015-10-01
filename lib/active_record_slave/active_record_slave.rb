@@ -82,7 +82,7 @@ module ActiveRecordSlave
   # Parameters
   #   variable [Symbol]
   #     Name of variable to get
-  if RUBY_VERSION.to_i >= 2
+  if (RUBY_VERSION.to_i >= 2) && !defined?(Rubinius::VERSION)
     # Fibers have their own thread local variables so use thread_variable_get
     def self.thread_variable_get(variable)
       Thread.current.thread_variable_get(variable)
@@ -100,7 +100,7 @@ module ActiveRecordSlave
   #     Name of variable to set
   #   value [Object]
   #     Value to set the thread variable to
-  if RUBY_VERSION.to_i >= 2
+  if (RUBY_VERSION.to_i >= 2) && !defined?(Rubinius::VERSION)
     # Fibers have their own thread local variables so use thread_variable_set
     def self.thread_variable_set(variable, value)
       Thread.current.thread_variable_set(variable, value)

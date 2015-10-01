@@ -1,5 +1,5 @@
 # active_record_slave
-[![Gem Version](https://badge.fury.io/rb/active_record_slave.svg)](http://badge.fury.io/rb/active_record_slave) [![Build Status](https://secure.travis-ci.org/reidmorrison/active_record_slave.png?branch=master)](http://travis-ci.org/reidmorrison/active_record_slave)  ![](http://ruby-gem-downloads-badge.herokuapp.com/active_record_slave?type=total)
+[![Gem Version](https://badge.fury.io/rb/active_record_slave.svg)](http://badge.fury.io/rb/active_record_slave) [![Build Status](https://secure.travis-ci.org/rocketjob/active_record_slave.png?branch=master)](http://travis-ci.org/rocketjob/active_record_slave)  ![](http://ruby-gem-downloads-badge.herokuapp.com/active_record_slave?type=total)
 
 Redirect ActiveRecord (Rails) reads to slave databases while ensuring all writes go to the master database.
 
