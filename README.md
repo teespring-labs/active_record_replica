@@ -1,5 +1,5 @@
 # active_record_slave
-[![Gem Version](https://badge.fury.io/rb/active_record_slave.svg)](http://badge.fury.io/rb/active_record_slave) [![Build Status](https://secure.travis-ci.org/rocketjob/active_record_slave.png?branch=master)](http://travis-ci.org/rocketjob/active_record_slave)  ![](http://ruby-gem-downloads-badge.herokuapp.com/active_record_slave?type=total)
+[![Gem Version](https://img.shields.io/gem/v/active_record_slave.svg)](https://rubygems.org/gems/active_record_slave) [![Build Status](https://travis-ci.org/rocketjob/active_record_slave.svg?branch=master)](https://travis-ci.org/rocketjob/active_record_slave) [![Downloads](https://img.shields.io/gem/dt/active_record_slave.svg)](https://rubygems.org/gems/active_record_slave) ![](https://img.shields.io/badge/status-Production%20Ready-blue.svg) [![Gitter chat](https://img.shields.io/badge/IRC%20(gitter)-Support-brightgreen.svg)](https://gitter.im/rocketjob/support)
 
 Redirect ActiveRecord (Rails) reads to slave databases while ensuring all writes go to the master database.
 
@@ -168,46 +168,89 @@ along with all the usual ActiveRecord database configuration options.
 For Example:
 
 ```yaml
-development:
-  database: myapp_development
-  username: root
-  password:
+production:
+  database: production
+  username: username
+  password: password
   encoding: utf8
   adapter:  mysql
-  host:     127.0.0.1
-  pool:     20
+  host:     master1
+  pool:     50
   slave:
-    database: myapp_development_replica
-    username: root
-    password:
+    database: production
+    username: username
+    password: password
     encoding: utf8
     adapter:  mysql
-    host:     127.0.0.1
-    pool:     20
+    host:     slave1
+    pool:     50
 ```
 
 Sometimes it is useful to turn on slave reads per host, for example to activate
 slave reads only on the linux host 'batch':
 
 ```yaml
-development:
-  database: myapp_development
-  username: root
-  password:
+production:
+  database: production
+  username: username
+  password: password
   encoding: utf8
   adapter:  mysql
-  host:     127.0.0.1
-  pool:     20
+  host:     master1
+  pool:     50
 <% if `hostname`.strip == 'batch' %>
   slave:
-    database: myapp_development_replica
-    username: root
-    password:
+    database: production
+    username: username
+    password: password
     encoding: utf8
     adapter:  mysql
-    host:     127.0.0.1
-    pool:     20
+    host:     slave1
+    pool:     50
 <% end %>
+```
+
+If there are multiple slaves, it is possible to randomly select a slave on startup
+to balance the load across the slaves:
+
+```yaml
+production:
+  database: production
+  username: username
+  password: password
+  encoding: utf8
+  adapter:  mysql
+  host:     master1
+  pool:     50
+  slave:
+    database: production
+    username: username
+    password: password
+    encoding: utf8
+    adapter:  mysql
+    host:     <%= %w(slave1 slave2 slave3).sample %>
+    pool:     50
+```
+
+Slaves can also be assigned to specific hosts by using the hostname:
+
+```yaml
+production:
+  database: production
+  username: username
+  password: password
+  encoding: utf8
+  adapter:  mysql
+  host:     master1
+  pool:     50
+  slave:
+    database: production
+    username: username
+    password: password
+    encoding: utf8
+    adapter:  mysql
+    host:     <%= `hostname`.strip == 'app1' ? 'slave1' : 'slave2' %>
+    pool:     50
 ```
 
 ## Dependencies
