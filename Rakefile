@@ -1,8 +1,9 @@
-require 'rake/clean'
-require 'rake/testtask'
+# Setup bundler to avoid having to run bundle exec all the time.
+require 'rubygems'
+require 'bundler/setup'
 
-$LOAD_PATH.unshift File.expand_path("../lib", __FILE__)
-require 'active_record_slave/version'
+require 'rake/testtask'
+require_relative 'lib/active_record_slave/version'
 
 task :gem do
   system "gem build active_record_slave.gemspec"
@@ -15,14 +16,16 @@ task :publish => :gem do
   system "rm active_record_slave-#{ActiveRecordSlave::VERSION}.gem"
 end
 
-desc "Run Test Suite"
-task :test do
-  Rake::TestTask.new(:functional) do |t|
-    t.test_files = FileList['test/*_test.rb']
-    t.verbose    = true
-  end
-
-  Rake::Task['functional'].invoke
+Rake::TestTask.new(:test) do |t|
+  t.pattern = 'test/**/*_test.rb'
+  t.verbose = true
+  t.warning = false
 end
 
-task :default => :test
+# By default run tests against all appraisals
+if !ENV["APPRAISAL_INITIALIZED"] && !ENV["TRAVIS"]
+  require 'appraisal'
+  task default: :appraisal
+else
+  task default: :test
+end

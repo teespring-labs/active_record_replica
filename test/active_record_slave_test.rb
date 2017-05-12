@@ -2,9 +2,9 @@ require File.join(File.dirname(__FILE__), 'test_helper')
 require 'logger'
 require 'erb'
 
-l = Logger.new('test.log')
-l.level = ::Logger::DEBUG
-ActiveRecord::Base.logger = l
+l                                 = Logger.new('test.log')
+l.level                           = ::Logger::DEBUG
+ActiveRecord::Base.logger         = l
 ActiveRecord::Base.configurations = YAML::load(ERB.new(IO.read('test/database.yml')).result)
 
 # Define Schema in second database (slave)
@@ -42,9 +42,9 @@ ActiveRecordSlave.install!(nil, 'test')
 # Unit Test for active_record_slave
 #
 class ActiveRecordSlaveTest < Minitest::Test
-  context 'the active_record_slave gem' do
+  describe 'the active_record_slave gem' do
 
-    setup do
+    before do
       ActiveRecordSlave.ignore_transactions = false
 
       User.delete_all
@@ -52,16 +52,16 @@ class ActiveRecordSlaveTest < Minitest::Test
       @name    = "Joe Bloggs"
       @address = "Somewhere"
       @user    = User.new(
-        :name => @name,
+        :name    => @name,
         :address => @address
       )
     end
 
-    teardown do
+    after do
       User.delete_all
     end
 
-    should "save to master" do
+    it 'saves to master' do
       assert_equal true, @user.save!
     end
 
@@ -72,7 +72,7 @@ class ActiveRecordSlaveTest < Minitest::Test
     #   so the tests will be verifying that reads going to the "slave" (second)
     #   database do not find data written to the master.
     #
-    should "save to master, read from slave" do
+    it 'saves to master, read from slave' do
       # Read from slave
       assert_equal 0, User.where(:name => @name, :address => @address).count
 
@@ -83,7 +83,7 @@ class ActiveRecordSlaveTest < Minitest::Test
       assert_equal 0, User.where(:name => @name, :address => @address).count
     end
 
-    should "save to master, read from master when in a transaction" do
+    it 'save to master, read from master when in a transaction' do
       assert_equal false, ActiveRecordSlave.ignore_transactions?
 
       User.transaction do
@@ -104,7 +104,7 @@ class ActiveRecordSlaveTest < Minitest::Test
       assert_equal 0, User.where(:name => @name, :address => @address).count
     end
 
-    should "save to master, read from slave when ignoring transactions" do
+    it 'save to master, read from slave when ignoring transactions' do
       ActiveRecordSlave.ignore_transactions = true
       assert_equal true, ActiveRecordSlave.ignore_transactions?
 
@@ -126,7 +126,7 @@ class ActiveRecordSlaveTest < Minitest::Test
       assert_equal 0, User.where(:name => @name, :address => @address).count
     end
 
-    should "save to master, force a read from master even when _not_ in a transaction" do
+    it 'saves to master, force a read from master even when _not_ in a transaction' do
       # Read from slave
       assert_equal 0, User.where(:name => @name, :address => @address).count
 

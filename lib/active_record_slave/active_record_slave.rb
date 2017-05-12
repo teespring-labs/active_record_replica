@@ -26,9 +26,6 @@ module ActiveRecordSlave
       # Inject a new #select method into the ActiveRecord Database adapter
       base = adapter_class || ActiveRecord::Base.connection.class
       base.send(:include, InstanceMethods)
-      SELECT_METHODS.each do |select_method|
-        base.alias_method_chain(select_method, :slave_reader)
-      end
     else
       ActiveRecord::Base.logger.info "ActiveRecordSlave not installed since no slave database defined"
     end

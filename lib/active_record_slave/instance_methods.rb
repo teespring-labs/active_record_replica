@@ -11,14 +11,11 @@ module ActiveRecordSlave
       # Database Adapter method #exec_query is called for every select call
       # Replace #exec_query with one that calls the slave connection instead
       eval <<-METHOD
-      def #{select_method}_with_slave_reader(sql, name = nil, *args)
-        if active_record_slave_read_from_master?
-          #{select_method}_without_slave_reader(sql, name, *args)
-        else
-          # Calls are going against the Slave now, prevent an infinite loop
-          ActiveRecordSlave.read_from_master do
-            Slave.connection.#{select_method}(sql, "Slave: \#{name || 'SQL'}", *args)
-          end
+      def #{select_method}(sql, name = nil, *args)
+        return super if active_record_slave_read_from_master?
+
+        ActiveRecordSlave.read_from_master do
+          Slave.connection.#{select_method}(sql, "Slave: \#{name || 'SQL'}", *args)
         end
       end
       METHOD

@@ -1,7 +1,8 @@
-.DS_Store
-nbproject/*
-*.gem
-.idea/*
-Gemfile.lock
+.bundle/
 *.log
+*.gem
+/.idea
+*.DS_Store
+Gemfile.lock
+/gemfiles/*.lock
 *.sqlite3
