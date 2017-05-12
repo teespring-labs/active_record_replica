@@ -102,9 +102,6 @@ D, [2012-11-06T19:43:26.892697 #89002] DEBUG -- :    (0.9ms)  commit transaction
 By default ActiveRecordSlave detects when a call is inside a transaction and will
 send all reads to the _master_ when a transaction is active.
 
-With the latest Rails releases, Rails automatically wraps all Controller Action
-calls with a transaction, effectively sending all reads to the master database.
-
 It is now possible to send reads to database slaves and ignore whether currently
 inside a transaction:
 
@@ -120,13 +117,16 @@ able to read any changes already part of the transaction, but not yet committed
 and wrap those reads with `ActiveRecordSlave.read_from_master`
 
 ```ruby
-# Create a new inquiry
-Inquiry.create
+Inquiry.transaction do
+  # Create a new inquiry
+  Inquiry.create
+  
+  # The above inquiry is not visible yet if already in a Rails transaction.
+  # Use `read_from_master` to ensure it is included in the count below:
+  ActiveRecordSlave.read_from_master do
+    count = Inquiry.count
+  end
 
-# The above inquiry is not visible yet if already in a Rails transaction.
-# Use `read_from_master` to ensure it is included in the count below:
-ActiveRecordSlave.read_from_master do
-  count = Inquiry.count
 end
 ```
 
