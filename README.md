@@ -7,9 +7,8 @@ Redirect ActiveRecord (Rails) reads to slave databases while ensuring all writes
 
 ## Introduction
 
-active_record_slave redirects all database reads to slave instances while ensuring
-that all writes go to the master database. active_record_slave ensures that
-any reads that are performed within a database transaction are by default directed to the master
+Redirect database reads to slave instances while ensuring that all writes go to the master database. 
+Any reads that are performed within a database transaction are by default directed to the master
 database to ensure data consistency.
 
 ## Status
@@ -18,7 +17,7 @@ Production Ready. Actively used in large production environments.
 
 ## Features
 
-* Redirecting reads to a single slave database.
+* Redirect reads to a single slave database.
 * Works with any database driver that works with ActiveRecord.
 * Supports all Rails 3, 4, or 5 read apis.
     * Including dynamic finders, AREL, and ActiveRecord::Base.select.
@@ -254,8 +253,6 @@ production:
 ```
 
 ## Dependencies
-
-* Tested on Rails 3 and Rails 4
 
 See [.travis.yml](https://github.com/reidmorrison/active_record_slave/blob/master/.travis.yml) for the list of tested Ruby platforms
 
