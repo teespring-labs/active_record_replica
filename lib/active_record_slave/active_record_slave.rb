@@ -45,9 +45,32 @@ module ActiveRecordSlave
     end
   end
 
+  #
+  # The default behavior can also set to read/write operations against master
+  # Create an initializer file config/initializer/active_record_slave.rb
+  # and set ActiveRecordSlave.read_from_master! to force read from master.
+  # Then use this method and supply block to read from the slave database
+  # Only applies to calls made within the current thread
+  def self.read_from_slave
+    return yield if read_from_slave?
+    begin
+      # Set nil indicator in thread local storage so that it is visible
+      # during the select call
+      read_from_slave!
+      yield
+    ensure
+      read_from_master!
+    end
+  end
+
   # Whether this thread is currently forcing all reads to go against the master database
   def self.read_from_master?
     thread_variable_get(:active_record_slave) == :master
+  end
+
+  # Whether this thread is currently forcing all reads to go against the slave database
+  def self.read_from_slave?
+    thread_variable_get(:active_record_slave) == nil
   end
 
   # Force all subsequent reads on this thread and any fibers called by this thread to go the master
