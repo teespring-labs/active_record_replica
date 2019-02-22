@@ -120,7 +120,7 @@ and wrap those reads with `ActiveRecordSlave.read_from_master`
 Inquiry.transaction do
   # Create a new inquiry
   Inquiry.create
-  
+
   # The above inquiry is not visible yet if already in a Rails transaction.
   # Use `read_from_master` to ensure it is included in the count below:
   ActiveRecordSlave.read_from_master do
@@ -266,6 +266,35 @@ See [.travis.yml](https://github.com/reidmorrison/active_record_slave/blob/maste
 ## Versioning
 
 This project uses [Semantic Versioning](http://semver.org/).
+
+## Contributing
+
+1. Fork repository in Github.
+
+2. Checkout your forked repository:
+
+    ```bash
+    git clone https://github.com/your_github_username/active_record_slave.git
+    cd active_record_slave
+    ```
+
+3. Create branch for your contribution:
+
+    ```bash
+    git co -b your_new_branch_name
+    ```
+
+4. Make code changes.
+
+5. Ensure tests pass.
+
+6. Push to your fork origin.
+
+    ```bash
+    git push origin
+    ```
+
+7. Submit PR from the branch on your fork in Github.
 
 ## Author
 
