@@ -21,6 +21,11 @@ module ActiveRecordSlave
       end
     if slave_config
       ActiveRecord::Base.logger.info "ActiveRecordSlave.install! v#{ActiveRecordSlave::VERSION} Establishing connection to slave database"
+
+      # Inheirt from master config unless explicitly specified in slave config.
+      master_config = ActiveRecord::Base.configurations[environment || Rails.env].tap{ |config| config.delete( "slave" ) }
+      slave_config  = master_config.merge( slave_config )
+
       Slave.establish_connection(slave_config)
 
       # Inject a new #select method into the ActiveRecord Database adapter
