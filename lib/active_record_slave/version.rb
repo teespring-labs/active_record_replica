@@ -1,3 +1,3 @@
-module ActiveRecordSlave #:nodoc
-  VERSION = '1.4.0'
+module ActiveRecordSlave
+  VERSION = '1.5.0'
 end

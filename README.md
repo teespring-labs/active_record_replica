@@ -26,7 +26,7 @@ Production Ready. Actively used in large production environments.
     * Detects when a query is inside of a transaction and sends those reads to the master by default.
     * Can be configured to send reads in a transaction to slave databases.
 * Lightweight footprint.
-* No overhead whatsoever when a slave is not configured.
+* No overhead whatsoever when a slave is _not_ configured.
 * Negligible overhead when redirecting reads to the slave.
 * Connection Pools to both databases are retained and maintained independently by ActiveRecord.
 * The master and slave databases do not have to be of the same type.
@@ -132,13 +132,81 @@ end
 
 ## Note
 
-ActiveRecord::Base.execute is sometimes used to perform custom SQL calls against
-the database to bypass ActiveRecord. It is necessary to replace these calls
-with the standard ActiveRecord::Base.select call for them to be picked up by
-active_record_slave and redirected to the slave.
+Active Record Slave is a very simple layer that inserts itself into the call chain whenever a slave is configured.
+By observation we noticed that all reads are made to a select set of methods and 
+all writes are made directly to one method: `execute`.
 
-This is because ActiveRecord::Base.execute can also be used for database updates
-which we do not want redirected to the slave
+Using this observation Active Record Slave only needs to intercept calls to the known select apis: 
+* select_all
+* select_one
+* select_rows
+* select_value
+* select_values
+
+Calls to the above methods are redirected to the slave active record model `ActiveRecordSlave::Slave`. 
+This model is 100% managed by the regular Active Record mechanisms such as connection pools etc.
+
+This lightweight approach ensures that all calls to the above API's are redirected to the slave without impacting:
+* Transactions
+* Writes
+* Any SQL calls directly to `execute`
+
+One of the limitations with this approach is that any code that performs a query by calling `execute` direct will not
+be redirected to the slave instance. In this case replace the use of `execute` with one of the the above select methods. 
+
+
+## Note when using `dependent: destroy`
+
+When performing in-memory only model assignments Active Record will create a transaction against the master even though
+the transaction may never be used.
+
+Even though the transaction is unused it sends the following messages to the master database:
+~~~
+SET autocommit=0
+commit
+SET autocommit=1
+~~~ 
+
+This will impact the master database if sufficient calls are made, such as in batch workers.
+
+For Example:
+
+~~~ruby
+class Parent < ActiveRecord::Base
+  has_one :child, dependent: :destroy
+end
+
+class Child < ActiveRecord::Base
+  belongs_to :parent
+end
+
+# The following code will create an unused transaction against the master, even when reads are going to slaves:
+parent = Parent.new
+parent.child = Child.new
+~~~
+
+If the `dependent: :destroy` is removed it no longer creates a transaction, but it also means dependents are not
+destroyed when a parent is destroyed.
+
+For this scenario when we are 100% confident no writes are being performed the following can be performed to 
+ignore any attempt Active Record makes at creating the transaction:
+
+~~~ruby
+ActiveRecordSlave.skip_transactions do
+  parent = Parent.new
+  parent.child = Child.new
+end
+~~~
+
+To help identify any code within a block that is creating transactions, wrap the code with 
+`ActiveRecordSlave.block_transactions` to make it raise an exception anytime a transaction is attempted:
+
+~~~ruby
+ActiveRecordSlave.block_transactions do
+  parent = Parent.new
+  parent.child = Child.new
+end
+~~~
 
 ## Install
 
@@ -255,13 +323,7 @@ production:
 
 ## Dependencies
 
-* Tested on Rails 3 and Rails 4
-
 See [.travis.yml](https://github.com/reidmorrison/active_record_slave/blob/master/.travis.yml) for the list of tested Ruby platforms
-
-## Possible Future Enhancements
-
-* Support for multiple named slaves (ask for it by submitting an issue)
 
 ## Versioning
 

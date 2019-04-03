@@ -41,6 +41,10 @@ ActiveRecordSlave.install!(nil, 'test')
 #
 # Unit Test for active_record_slave
 #
+# Since their is no database replication in this test environment, it will
+# use 2 separate databases. Writes go to the first database and reads to the second.
+# As a result any writes to the first database will not be visible when trying to read from
+# the second test database.
 class ActiveRecordSlaveTest < Minitest::Test
   describe 'the active_record_slave gem' do
 

@@ -2,7 +2,6 @@
 # ActiveRecord read from a slave
 #
 module ActiveRecordSlave
-
   # Install ActiveRecord::Slave into ActiveRecord to redirect reads to the slave
   # Parameters:
   #   adapter_class:
@@ -36,12 +35,11 @@ module ActiveRecordSlave
   def self.read_from_master
     return yield if read_from_master?
     begin
-      # Set :master indicator in thread local storage so that it is visible
-      # during the select call
+      previous = Thread.current.thread_variable_get(:active_record_slave)
       read_from_master!
       yield
     ensure
-      read_from_slave!
+      Thread.current.thread_variable_set(:active_record_slave, previous)
     end
   end
 
@@ -54,33 +52,68 @@ module ActiveRecordSlave
   def self.read_from_slave
     return yield if read_from_slave?
     begin
-      # Set nil indicator in thread local storage so that it is visible
-      # during the select call
+      previous = Thread.current.thread_variable_get(:active_record_slave)
       read_from_slave!
       yield
     ensure
-      read_from_master!
+      Thread.current.thread_variable_set(:active_record_slave, previous)
+    end
+  end
+
+  # When only reading from a slave it is important to prevent entering any into
+  # a transaction since the transaction still sends traffic to the master
+  # that will cause the master database to slow down processing empty transactions.
+  def self.block_transactions
+    begin
+      previous = Thread.current.thread_variable_get(:active_record_slave_transaction)
+      Thread.current.thread_variable_set(:active_record_slave_transaction, :block)
+      yield
+    ensure
+      Thread.current.thread_variable_set(:active_record_slave_transaction, previous)
+    end
+  end
+
+  # During this block any attempts to start or end transactions will be ignored.
+  # This extreme action should only be taken when 100% certain no writes are going to be
+  # performed.
+  def self.skip_transactions
+    begin
+      previous = Thread.current.thread_variable_get(:active_record_slave_transaction)
+      Thread.current.thread_variable_set(:active_record_slave_transaction, :skip)
+      yield
+    ensure
+      Thread.current.thread_variable_set(:active_record_slave_transaction, previous)
     end
   end
 
   # Whether this thread is currently forcing all reads to go against the master database
   def self.read_from_master?
-    thread_variable_get(:active_record_slave) == :master
+    Thread.current.thread_variable_get(:active_record_slave) == :master
   end
 
   # Whether this thread is currently forcing all reads to go against the slave database
   def self.read_from_slave?
-    thread_variable_get(:active_record_slave) == nil
+    Thread.current.thread_variable_get(:active_record_slave).nil?
   end
 
   # Force all subsequent reads on this thread and any fibers called by this thread to go the master
   def self.read_from_master!
-    thread_variable_set(:active_record_slave, :master)
+    Thread.current.thread_variable_set(:active_record_slave, :master)
   end
 
   # Subsequent reads on this thread and any fibers called by this thread can go to a slave
   def self.read_from_slave!
-    thread_variable_set(:active_record_slave, nil)
+    Thread.current.thread_variable_set(:active_record_slave, nil)
+  end
+
+  # Whether any attempt to start a transaction should result in an exception
+  def self.block_transactions?
+    Thread.current.thread_variable_get(:active_record_slave_transaction) == :block
+  end
+
+  # Whether any attempt to start a transaction should be skipped.
+  def self.skip_transactions?
+    Thread.current.thread_variable_get(:active_record_slave_transaction) == :skip
   end
 
   # Returns whether slave reads are ignoring transactions
@@ -93,43 +126,7 @@ module ActiveRecordSlave
     @ignore_transactions = ignore_transactions
   end
 
-  ##############################################################################
   private
 
   @ignore_transactions = false
-
-  # Returns the value of the local thread variable
-  #
-  # Parameters
-  #   variable [Symbol]
-  #     Name of variable to get
-  if (RUBY_VERSION.to_i >= 2) && !defined?(Rubinius::VERSION)
-    # Fibers have their own thread local variables so use thread_variable_get
-    def self.thread_variable_get(variable)
-      Thread.current.thread_variable_get(variable)
-    end
-  else
-    def self.thread_variable_get(variable)
-      Thread.current[variable]
-    end
-  end
-
-  # Sets the value of the local thread variable
-  #
-  # Parameters
-  #   variable [Symbol]
-  #     Name of variable to set
-  #   value [Object]
-  #     Value to set the thread variable to
-  if (RUBY_VERSION.to_i >= 2) && !defined?(Rubinius::VERSION)
-    # Fibers have their own thread local variables so use thread_variable_set
-    def self.thread_variable_set(variable, value)
-      Thread.current.thread_variable_set(variable, value)
-    end
-  else
-    def self.thread_variable_set(variable, value)
-      Thread.current[variable] = value
-    end
-  end
-
 end

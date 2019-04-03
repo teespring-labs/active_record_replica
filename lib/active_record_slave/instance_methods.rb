@@ -21,6 +21,41 @@ module ActiveRecordSlave
       METHOD
     end
 
+    def begin_db_transaction
+      return if ActiveRecordSlave.skip_transactions?
+      return super unless ActiveRecordSlave.block_transactions?
+
+      raise(TransactionAttempted, 'Attempting to begin a transaction during a read-only database connection.')
+    end
+
+    def commit_db_transaction
+      return if ActiveRecordSlave.skip_transactions?
+      return super unless ActiveRecordSlave.block_transactions?
+
+      raise(TransactionAttempted, 'Attempting to commit a transaction during a read-only database connection.')
+    end
+
+    def create_savepoint(name = current_savepoint_name(true))
+      return if ActiveRecordSlave.skip_transactions?
+      return super unless ActiveRecordSlave.block_transactions?
+
+      raise(TransactionAttempted, 'Attempting to create a savepoint during a read-only database connection.')
+    end
+
+    def rollback_to_savepoint(name = current_savepoint_name(true))
+      return if ActiveRecordSlave.skip_transactions?
+      return super unless ActiveRecordSlave.block_transactions?
+
+      raise(TransactionAttempted, 'Attempting to rollback a savepoint during a read-only database connection.')
+    end
+
+    def release_savepoint(name = current_savepoint_name(true))
+      return if ActiveRecordSlave.skip_transactions?
+      return super unless ActiveRecordSlave.block_transactions?
+
+      raise(TransactionAttempted, 'Attempting to release a savepoint during a read-only database connection.')
+    end
+
     # Returns whether to read from the master database
     def active_record_slave_read_from_master?
       # Read from master when forced by thread variable, or

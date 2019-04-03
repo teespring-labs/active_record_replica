@@ -1,6 +1,5 @@
-module ActiveRecordSlave #:nodoc:
-  class Railtie < Rails::Railtie #:nodoc:
-
+module ActiveRecordSlave
+  class Railtie < Rails::Railtie
     # Make the ActiveRecordSlave configuration available in the Rails application config
     #
     # Example: For this application ignore the current transactions since the application
