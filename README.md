@@ -22,6 +22,7 @@ Production Ready. Actively used in large production environments.
 * Works with any database driver that works with ActiveRecord.
 * Supports all Rails 3, 4, or 5 read apis.
     * Including dynamic finders, AREL, and ActiveRecord::Base.select.
+    * **NOTE**: In Rails 3 and 4, QueryCache is only enabled for BaseConnection by default. In Rails 5, it's enabled for all connections. [(PR)](https://github.com/rails/rails/pull/28869)
 * Transaction aware
     * Detects when a query is inside of a transaction and sends those reads to the master by default.
     * Can be configured to send reads in a transaction to slave databases.
