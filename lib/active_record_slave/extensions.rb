@@ -1,24 +1,22 @@
+require 'active_support/concern'
 module ActiveRecordSlave
-  # Select Methods
-  SELECT_METHODS = [:select, :select_all, :select_one, :select_rows, :select_value, :select_values]
+  module Extensions
+    extend ActiveSupport::Concern
 
-  # In case in the future we are forced to intercept connection#execute if the
-  # above select methods are not sufficient
-  #   SQL_READS = /\A\s*(SELECT|WITH|SHOW|CALL|EXPLAIN|DESCRIBE)/i
-
-  module InstanceMethods
-    SELECT_METHODS.each do |select_method|
-      # Database Adapter method #exec_query is called for every select call
-      # Replace #exec_query with one that calls the slave connection instead
-      eval <<-METHOD
-      def #{select_method}(sql, name = nil, *args)
-        return super if active_record_slave_read_from_master?
-
-        ActiveRecordSlave.read_from_master do
-          Slave.connection.#{select_method}(sql, "Slave: \#{name || 'SQL'}", *args)
+    ActiveRecordSlave::SELECT_METHODS.each do |select_method|
+      class_eval <<-RUBY, __FILE__, __LINE__ + 1
+        def #{select_method}(sql, name = nil, *args)
+          return super if active_record_slave_read_from_master?
+  
+          ActiveRecordSlave.read_from_master do
+            reader_connection.#{select_method}(sql, "Slave: \#{name || 'SQL'}", *args)
+          end
         end
-      end
-      METHOD
+      RUBY
+    end
+
+    def reader_connection
+      Slave.connection
     end
 
     def begin_db_transaction
@@ -63,7 +61,5 @@ module ActiveRecordSlave
       ActiveRecordSlave.read_from_master? ||
         (open_transactions > 0) && !ActiveRecordSlave.ignore_transactions?
     end
-
   end
 end
-

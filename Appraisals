@@ -14,7 +14,3 @@ end
 appraise 'rails_5.2' do
   gem 'activerecord', '~> 5.2.3'
 end
-
-appraise 'rails_6.0' do
-  gem 'activerecord', '6.0.0.beta3'
-end

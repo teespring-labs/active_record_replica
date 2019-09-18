@@ -2,6 +2,13 @@
 # ActiveRecord read from a slave
 #
 module ActiveRecordSlave
+  # Select Methods
+  SELECT_METHODS = [:select, :select_all, :select_one, :select_rows, :select_value, :select_values]
+
+  # In case in the future we are forced to intercept connection#execute if the
+  # above select methods are not sufficient
+  #   SQL_READS = /\A\s*(SELECT|WITH|SHOW|CALL|EXPLAIN|DESCRIBE)/i
+
   # Install ActiveRecord::Slave into ActiveRecord to redirect reads to the slave
   # Parameters:
   #   adapter_class:
@@ -24,7 +31,7 @@ module ActiveRecordSlave
 
       # Inject a new #select method into the ActiveRecord Database adapter
       base = adapter_class || ActiveRecord::Base.connection.class
-      base.send(:include, InstanceMethods)
+      base.include(Extensions)
     else
       ActiveRecord::Base.logger.info "ActiveRecordSlave not installed since no slave database defined"
     end
