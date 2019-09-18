@@ -11,5 +11,5 @@ gem 'jdbc-sqlite3', platform: :jruby
 gem 'activerecord-jdbcsqlite3-adapter', platform: :jruby
 gem 'appraisal'
 
-gem 'activerecord', '6.0.0.beta3'
+gem 'activerecord', '~> 5.2.0'
 
