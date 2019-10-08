@@ -322,6 +322,24 @@ production:
     pool:     50
 ```
 
+## Set master as default for Read
+
+The default behavior can also set to read/write operations against master database.
+
+Create an initializer file config/initializer/active_record_slave.rb to force read from master:
+
+```yaml
+    ActiveRecordSlave.read_from_master!
+```
+
+Then use this method and supply block to read from the slave database:
+
+```yaml
+ActiveRecordSlave.read_from_slave do
+   User.count
+end
+```
+
 ## Dependencies
 
 See [.travis.yml](https://github.com/reidmorrison/active_record_slave/blob/master/.travis.yml) for the list of tested Ruby platforms
