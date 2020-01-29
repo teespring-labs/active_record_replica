@@ -1,9 +1,13 @@
 # Active Record Slave
-[![Gem Version](https://img.shields.io/gem/v/active_record_slave.svg)](https://rubygems.org/gems/active_record_slave) [![Build Status](https://travis-ci.org/rocketjob/active_record_slave.svg?branch=master)](https://travis-ci.org/rocketjob/active_record_slave) [![Downloads](https://img.shields.io/gem/dt/active_record_slave.svg)](https://rubygems.org/gems/active_record_slave) [![License](https://img.shields.io/badge/license-Apache%202.0-brightgreen.svg)](http://opensource.org/licenses/Apache-2.0) ![](https://img.shields.io/badge/status-Production%20Ready-blue.svg) [![Gitter chat](https://img.shields.io/badge/IRC%20(gitter)-Support-brightgreen.svg)](https://gitter.im/rocketjob/support)
+![](https://img.shields.io/badge/status-DEPRECATED-red.svg) [![Gem Version](https://img.shields.io/gem/v/active_record_slave.svg)](https://rubygems.org/gems/active_record_slave) [![Build Status](https://travis-ci.org/rocketjob/active_record_slave.svg?branch=master)](https://travis-ci.org/rocketjob/active_record_slave) [![Downloads](https://img.shields.io/gem/dt/active_record_slave.svg)](https://rubygems.org/gems/active_record_slave) [![License](https://img.shields.io/badge/license-Apache%202.0-brightgreen.svg)](http://opensource.org/licenses/Apache-2.0) 
 
 Redirect ActiveRecord (Rails) reads to slave databases while ensuring all writes go to the master database.
 
 * https://github.com/rocketjob/active_record_slave
+
+## DEPRECATED
+
+This gem is now deprecated since reading from slave databases is now finally built into Rails 6 :tada:
 
 ## Introduction
 
@@ -11,10 +15,6 @@ active_record_slave redirects all database reads to slave instances while ensuri
 that all writes go to the master database. active_record_slave ensures that
 any reads that are performed within a database transaction are by default directed to the master
 database to ensure data consistency.
-
-## Status
-
-Production Ready. Actively used in large production environments.
 
 ## Features
 
