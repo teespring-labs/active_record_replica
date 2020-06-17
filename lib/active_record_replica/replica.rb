@@ -1,6 +1,6 @@
-module ActiveRecordSlave
-  # Class to hold slave connection pool
-  class Slave < ActiveRecord::Base
+module ActiveRecordReplica
+  # Class to hold replica connection pool
+  class Replica < ActiveRecord::Base
     # Prevent Rails from trying to create an instance of this model
     self.abstract_class = true
 
