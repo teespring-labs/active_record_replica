@@ -3,17 +3,17 @@ require 'rubygems'
 require 'bundler/setup'
 
 require 'rake/testtask'
-require_relative 'lib/active_record_slave/version'
+require_relative 'lib/active_record_replica/version'
 
 task :gem do
-  system "gem build active_record_slave.gemspec"
+  system "gem build active_record_replica.gemspec"
 end
 
 task :publish => :gem do
-  system "git tag -a v#{ActiveRecordSlave::VERSION} -m 'Tagging #{ActiveRecordSlave::VERSION}'"
+  system "git tag -a v#{ActiveRecordReplica::VERSION} -m 'Tagging #{ActiveRecordReplica::VERSION}'"
   system "git push --tags"
-  system "gem push active_record_slave-#{ActiveRecordSlave::VERSION}.gem"
-  system "rm active_record_slave-#{ActiveRecordSlave::VERSION}.gem"
+  system "gem push active_record_replica-#{ActiveRecordReplica::VERSION}.gem"
+  system "rm active_record_replica-#{ActiveRecordReplica::VERSION}.gem"
 end
 
 Rake::TestTask.new(:test) do |t|
