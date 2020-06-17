@@ -8,3 +8,4 @@ Redirect ActiveRecord (Rails) reads to replica databases while ensuring all writ
 All of the capabilities of this gem are now included in Rails 6 :tada:
 
 _This gem is now archived and no longer maintained._
+
