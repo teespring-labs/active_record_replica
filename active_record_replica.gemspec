@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.platform              = Gem::Platform::RUBY
   spec.authors               = ['Reid Morrison']
   spec.email                 = ['reidmo@gmail.com']
-  spec.homepage              = 'https://github.com/rocketjob/active_record_replica'
+  spec.homepage              = 'https://github.com/teespring/active_record_replica'
   spec.summary               = 'Redirect ActiveRecord (Rails) reads to replica databases while ensuring all writes go to the primary database.'
   spec.files                 = Dir['lib/**/*', 'LICENSE.txt', 'Rakefile', 'README.md']
   spec.test_files            = Dir['test/**/*']

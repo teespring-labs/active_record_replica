@@ -2,13 +2,13 @@
 
 Provide at least:
 * Ruby Version.
-* Active Record Slave Version.
+* Active Record Replica Version.
 * Application/framework names and versions (e.g. Rails, Sinatra, Puma, etc.).
 * Full Stack Trace, if an exception is being raised.
 
 ### Expected Behavior
 
-* Describe your expectation of how Active Record Slave should behave.
+* Describe your expectation of how Active Record Replica should behave.
 * Ideally, provide a standalone Ruby script or a link to an example repository that helps reproduce the issue.
 
 ### Actual Behavior
