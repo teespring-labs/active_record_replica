@@ -12,22 +12,19 @@ module ActiveRecordReplica
   #     In a non-Rails environment, supply the environment such as
   #     'development', 'production'
   def self.install!(adapter_class = nil, environment = nil)
-    replica_config =
-      if ActiveRecord::Base.connection.respond_to?(:config)
-        ActiveRecord::Base.connection.config[:replica]
-      else
-        ActiveRecord::Base.configurations[environment || Rails.env]['replica']
-      end
-    if replica_config
-      ActiveRecord::Base.logger.info "ActiveRecordReplica.install! v#{ActiveRecordReplica::VERSION} Establishing connection to replica database"
-      Replica.establish_connection(replica_config)
-
-      # Inject a new #select method into the ActiveRecord Database adapter
-      base = adapter_class || ActiveRecord::Base.connection.class
-      base.include(Extensions)
-    else
-      ActiveRecord::Base.logger.info "ActiveRecordReplica not installed since no replica database defined"
+    replica_config = ActiveRecord::Base.configurations[environment || Rails.env]["replica"]
+    unless replica_config
+      ActiveRecord::Base.logger.info("ActiveRecordReplica not installed since no replica database defined")
+      return
     end
+
+    version = ActiveRecordReplica::VERSION
+    ActiveRecord::Base.logger.info("ActiveRecordReplica.install! v#{version} Establishing connection to replica database")
+    Replica.establish_connection(replica_config)
+
+    # Inject a new #select method into the ActiveRecord Database adapter
+    base = adapter_class || ActiveRecord::Base.connection.class
+    base.include(Extensions)
   end
 
   # Force reads for the supplied block to read from the primary database
