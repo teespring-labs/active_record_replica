@@ -2,13 +2,6 @@
 # ActiveRecord read from a replica
 #
 module ActiveRecordReplica
-  # Select Methods
-  SELECT_METHODS = [:select, :select_all, :select_one, :select_rows, :select_value, :select_values]
-
-  # In case in the future we are forced to intercept connection#execute if the
-  # above select methods are not sufficient
-  #   SQL_READS = /\A\s*(SELECT|WITH|SHOW|CALL|EXPLAIN|DESCRIBE)/i
-
   # Install ActiveRecord::Replica into ActiveRecord to redirect reads to the replica
   # Parameters:
   #   adapter_class:
@@ -39,15 +32,8 @@ module ActiveRecordReplica
 
   # Force reads for the supplied block to read from the primary database
   # Only applies to calls made within the current thread
-  def self.read_from_primary
-    return yield if read_from_primary?
-    begin
-      previous = Thread.current.thread_variable_get(:active_record_replica)
-      read_from_primary!
-      yield
-    ensure
-      Thread.current.thread_variable_set(:active_record_replica, previous)
-    end
+  def self.read_from_primary(&block)
+    thread_variable_yield(:active_record_replica, :primary, &block)
   end
 
   #
@@ -56,71 +42,56 @@ module ActiveRecordReplica
   # and set ActiveRecordReplica.read_from_primary! to force read from primary.
   # Then use this method and supply block to read from the replica database
   # Only applies to calls made within the current thread
-  def self.read_from_replica
-    return yield if read_from_replica?
-    begin
-      previous = Thread.current.thread_variable_get(:active_record_replica)
-      read_from_replica!
-      yield
-    ensure
-      Thread.current.thread_variable_set(:active_record_replica, previous)
-    end
+  def self.read_from_replica(&block)
+    thread_variable_yield(:active_record_replica, nil, &block)
   end
 
   # When only reading from a replica it is important to prevent entering any into
   # a transaction since the transaction still sends traffic to the primary
   # that will cause the primary database to slow down processing empty transactions.
   def self.block_transactions
-    begin
-      previous = Thread.current.thread_variable_get(:active_record_replica_transaction)
-      Thread.current.thread_variable_set(:active_record_replica_transaction, :block)
-      yield
-    ensure
-      Thread.current.thread_variable_set(:active_record_replica_transaction, previous)
-    end
+    thread_variable_yield(:active_record_replica_transaction, :block, &block)
   end
 
   # During this block any attempts to start or end transactions will be ignored.
   # This extreme action should only be taken when 100% certain no writes are going to be
   # performed.
   def self.skip_transactions
-    begin
-      previous = Thread.current.thread_variable_get(:active_record_replica_transaction)
-      Thread.current.thread_variable_set(:active_record_replica_transaction, :skip)
-      yield
-    ensure
-      Thread.current.thread_variable_set(:active_record_replica_transaction, previous)
-    end
+    thread_variable_yield(:active_record_replica_transaction, :skip, &block)
   end
 
   # Whether this thread is currently forcing all reads to go against the primary database
   def self.read_from_primary?
-    Thread.current.thread_variable_get(:active_record_replica) == :primary
+    !@read_from_replica || thread_variable_equals(:active_record_replica, :primary)
   end
 
   # Whether this thread is currently forcing all reads to go against the replica database
   def self.read_from_replica?
-    Thread.current.thread_variable_get(:active_record_replica).nil?
+    @read_from_replica && thread_variable_equals(:active_record_replica, nil)
   end
 
-  # Force all subsequent reads on this thread and any fibers called by this thread to go the primary
+  # Force all subsequent reads in this process to read from the primary database.
+  #
+  # The default behavior can be set to read/write operations against primary.
+  # Create an initializer file config/initializer/active_record_replica.rb
+  # and set ActiveRecordReplica.read_from_primary! to force read from primary.
   def self.read_from_primary!
-    Thread.current.thread_variable_set(:active_record_replica, :primary)
+    @read_from_replica = false
   end
 
-  # Subsequent reads on this thread and any fibers called by this thread can go to a replica
+  # Force all subsequent reads in this process to read from the replica database.
   def self.read_from_replica!
-    Thread.current.thread_variable_set(:active_record_replica, nil)
+    @read_from_replica = true
   end
 
   # Whether any attempt to start a transaction should result in an exception
   def self.block_transactions?
-    Thread.current.thread_variable_get(:active_record_replica_transaction) == :block
+    thread_variable_equals(:active_record_replica_transaction, :block)
   end
 
   # Whether any attempt to start a transaction should be skipped.
   def self.skip_transactions?
-    Thread.current.thread_variable_get(:active_record_replica_transaction) == :skip
+    thread_variable_equals(:active_record_replica_transaction, :skip)
   end
 
   # Returns whether replica reads are ignoring transactions
@@ -135,5 +106,24 @@ module ActiveRecordReplica
 
   private
 
+  def self.thread_variable_equals(key, value)
+    Thread.current.thread_variable_get(key) == value
+  end
+
+  # Sets the thread variable for the duration of the supplied block.
+  # Restores the previous value on completion of the block.
+  def self.thread_variable_yield(key, new_value)
+    previous = Thread.current.thread_variable_get(key)
+    return yield if previous == new_value
+
+    begin
+      Thread.current.thread_variable_set(key, new_value)
+      yield
+    ensure
+      Thread.current.thread_variable_set(key, previous)
+    end
+  end
+
   @ignore_transactions = false
+  @read_from_replica   = true
 end

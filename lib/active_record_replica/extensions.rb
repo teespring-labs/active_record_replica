@@ -3,7 +3,7 @@ module ActiveRecordReplica
   module Extensions
     extend ActiveSupport::Concern
 
-    ActiveRecordReplica::SELECT_METHODS.each do |select_method|
+    [:select, :select_all, :select_one, :select_rows, :select_value, :select_values].each do |select_method|
       class_eval <<-RUBY, __FILE__, __LINE__ + 1
         def #{select_method}(sql, name = nil, *args)
           return super if active_record_replica_read_from_primary?
