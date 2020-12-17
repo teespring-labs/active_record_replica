@@ -12,13 +12,14 @@ require_relative "test_helper"
 #
 # The tests verify that reads going to the replica database do not find data written to the primary.
 class ActiveRecordReplicaTest < Minitest::Test
-  describe "the active_record_replica gem" do
+  describe ActiveRecordReplica do
     let(:user_name) { "Joe Bloggs" }
     let(:address) { "Somewhere" }
     let(:user) { User.new(name: user_name, address: address) }
 
     before do
       ActiveRecordReplica.ignore_transactions = false
+      ActiveRecordReplica.read_from_replica!
       User.delete_all
     end
 
@@ -93,6 +94,66 @@ class ActiveRecordReplicaTest < Minitest::Test
       # Read from Primary
       ActiveRecordReplica.read_from_primary do
         assert_equal 1, User.where(name: user_name, address: address).count
+      end
+    end
+
+    describe ".read_from_replica?" do
+      it "is true when global replica flag is set" do
+        ActiveRecordReplica.read_from_replica!
+        assert ActiveRecordReplica.read_from_replica?
+      end
+
+      it "is false when reading from replica" do
+        ActiveRecordReplica.read_from_primary!
+        refute ActiveRecordReplica.read_from_replica?
+      end
+    end
+
+    describe ".read_from_primary?" do
+      it "is true when global primary flag is set" do
+        ActiveRecordReplica.read_from_primary!
+        assert ActiveRecordReplica.read_from_primary?
+      end
+
+      it "is false when reading from replica" do
+        ActiveRecordReplica.read_from_replica!
+        refute ActiveRecordReplica.read_from_primary?
+      end
+    end
+
+    describe ".read_from_replica" do
+      it "works with global replica flag" do
+        ActiveRecordReplica.read_from_replica!
+        ActiveRecordReplica.read_from_replica do
+          assert ActiveRecordReplica.read_from_replica?
+          refute ActiveRecordReplica.read_from_primary?
+        end
+      end
+
+      it "overwrites global replica flag" do
+        ActiveRecordReplica.read_from_primary!
+        ActiveRecordReplica.read_from_replica do
+          assert ActiveRecordReplica.read_from_replica?
+          refute ActiveRecordReplica.read_from_primary?
+        end
+      end
+    end
+
+    describe ".read_from_primary" do
+      it "works with global replica flag" do
+        ActiveRecordReplica.read_from_primary!
+        ActiveRecordReplica.read_from_primary do
+          assert ActiveRecordReplica.read_from_primary?
+          refute ActiveRecordReplica.read_from_replica?
+        end
+      end
+
+      it "overwrites global replica flag" do
+        ActiveRecordReplica.read_from_replica!
+        ActiveRecordReplica.read_from_primary do
+          assert ActiveRecordReplica.read_from_primary?
+          refute ActiveRecordReplica.read_from_replica?
+        end
       end
     end
   end

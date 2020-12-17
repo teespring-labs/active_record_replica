@@ -47,7 +47,7 @@ module ActiveRecordReplica
   # Then use this method and supply block to read from the replica database
   # Only applies to calls made within the current thread
   def self.read_from_replica(&block)
-    thread_variable_yield(:active_record_replica, nil, &block)
+    thread_variable_yield(:active_record_replica, :replica, &block)
   end
 
   # When only reading from a replica it is important to prevent entering any into
@@ -66,12 +66,19 @@ module ActiveRecordReplica
 
   # Whether this thread is currently forcing all reads to go against the primary database
   def self.read_from_primary?
-    !@read_from_replica || thread_variable_equals(:active_record_replica, :primary)
+    !read_from_replica?
   end
 
   # Whether this thread is currently forcing all reads to go against the replica database
   def self.read_from_replica?
-    @read_from_replica && thread_variable_equals(:active_record_replica, nil)
+    case Thread.current.thread_variable_get(:active_record_replica)
+    when :primary
+      false
+    when :replica
+      true
+    else
+      @read_from_replica
+    end
   end
 
   # Force all subsequent reads in this process to read from the primary database.
