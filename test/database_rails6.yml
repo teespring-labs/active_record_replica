@@ -1,0 +1,23 @@
+config: &config
+  adapter:  sqlite3
+  pool:     5
+  timeout:  5000
+
+# Make the replica a separate database that is not replicated to ensure reads
+# and writes go to the appropriate databases
+test:
+  primary:
+    <<: *config
+    database: test/db1_primary.sqlite3
+  primary_reader:
+    <<: *config
+    database: test/db1_replica.sqlite3
+    replica: true
+
+  consumers:
+    <<: *config
+    database: test/db2_primary.sqlite3
+  consumers_reader:
+    <<: *config
+    database: test/db2_replica.sqlite3
+    replica: true

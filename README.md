@@ -59,13 +59,13 @@ Log file output:
 
 ### Example showing how reads within a transaction go to the primary
 
-```ruby
+~~~ruby
 Role.transaction do
   r = Role.where(name: 'manager').first
   r.description = 'Manager'
   r.save!
 end
-```
+~~~
 
 Log file output:
 
@@ -76,11 +76,11 @@ Log file output:
 
 Sometimes it is necessary to read from the primary:
 
-```ruby
+~~~ruby
 ActiveRecordReplica.read_from_primary do
   r = Role.where(name: 'manager').first
 end
-```
+~~~
 
 ## Usage Notes
 
@@ -88,21 +88,21 @@ end
 
 Delete all executes against the primary database since it is only a delete:
 
-```
+~~~
 D, [2012-11-06T19:47:29.125932 #89772] DEBUG -- :   SQL (1.0ms)  DELETE FROM "users"
-```
+~~~
 
 ### destroy_all
 
 First performs a read against the replica database and then deletes the corresponding
 data from the primary
 
-```
+~~~
 D, [2012-11-06T19:43:26.890674 #89002] DEBUG -- :   Replica: User Load (0.1ms)  SELECT "users".* FROM "users"
 D, [2012-11-06T19:43:26.890972 #89002] DEBUG -- :    (0.0ms)  begin transaction
 D, [2012-11-06T19:43:26.891667 #89002] DEBUG -- :   SQL (0.4ms)  DELETE FROM "users" WHERE "users"."id" = ?  [["id", 3]]
 D, [2012-11-06T19:43:26.892697 #89002] DEBUG -- :    (0.9ms)  commit transaction
-```
+~~~
 
 ## Transactions
 
@@ -114,16 +114,16 @@ inside a transaction:
 
 In file config/application.rb:
 
-```ruby
+~~~ruby
 # Read from replica even when in an active transaction
 config.active_record_replica.ignore_transactions = true
-```
+~~~
 
 It is important to identify any code in the application that depends on being
 able to read any changes already part of the transaction, but not yet committed
 and wrap those reads with `ActiveRecordReplica.read_from_primary`
 
-```ruby
+~~~ruby
 Inquiry.transaction do
   # Create a new inquiry
   Inquiry.create
@@ -133,9 +133,8 @@ Inquiry.transaction do
   ActiveRecordReplica.read_from_primary do
     count = Inquiry.count
   end
-
 end
-```
+~~~
 
 ## Note
 
@@ -168,17 +167,17 @@ When performing in-memory only model assignments Active Record will create a tra
 the transaction may never be used.
 
 Even though the transaction is unused it sends the following messages to the primary database:
-~~
+~~~sql
 SET autocommit=0
 commit
 SET autocommit=1
-~~
+~~~
 
 This will impact the primary database if sufficient calls are made, such as in batch workers.
 
 For Example:
 
-~~ruby
+~~~ruby
 class Parent < ActiveRecord::Base
   has_one :child, dependent: :destroy
 end
@@ -190,7 +189,7 @@ end
 # The following code will create an unused transaction against the primary, even when reads are going to replicas:
 parent = Parent.new
 parent.child = Child.new
-~~
+~~~
 
 If the `dependent: :destroy` is removed it no longer creates a transaction, but it also means dependents are not
 destroyed when a parent is destroyed.
@@ -198,135 +197,175 @@ destroyed when a parent is destroyed.
 For this scenario when we are 100% confident no writes are being performed the following can be performed to
 ignore any attempt Active Record makes at creating the transaction:
 
-~~ruby
+~~~ruby
 ActiveRecordReplica.skip_transactions do
   parent = Parent.new
   parent.child = Child.new
 end
-~~
+~~~
 
 To help identify any code within a block that is creating transactions, wrap the code with
 `ActiveRecordReplica.block_transactions` to make it raise an exception anytime a transaction is attempted:
 
-~~ruby
+~~~ruby
 ActiveRecordReplica.block_transactions do
   parent = Parent.new
   parent.child = Child.new
 end
-~~
+~~~
 
-## Install
+## Rails 6 and above
+
+Rails 6 natively supports multiple databases. It unfortunately only supports connection switching, so it cannot
+transparently redirect reads to a replica database the way ActiveRecordReplica does.
+
+### Installation
 
 Add to `Gemfile`
 
-```ruby
-gem 'active_record_replica'
-```
+~~~ruby
+gem "active_record_replica", "~>3.0"
+~~~
 
-Run bundler to install:
+### Configuration
 
-```
-bundle
-```
+Move the existing database config into a section under `primary` and add another section called `primary_reader`
+with `replica: true` to `database.yml`, for example:
 
-Or, without Bundler:
+~~~yaml
+config: &config
+  database: production
+  username: username
+  password: password
+  encoding: utf8
+  adapter:  mysql
+  pool:     50
 
-```
-gem install active_record_replica
-```
+production:
+  primary:
+    <<: *config
+    host: primary1
+  primary_reader:
+    <<: *config
+    host: replica1
+    replica: true
+~~~
 
-## Configuration
+In order to tell Active Record about these entries, add the required entry to `ApplicationRecord`.
+For example:
+
+~~~ruby
+class ApplicationRecord < ActiveRecord::Base
+  self.abstract_class = true
+
+  connects_to database: {writing: :primary, reading: :primary_reader}
+end
+~~~
+
+Rails recommends that all user models should inherit from ApplicationRecord, but if your models still inherit
+directly from `ActiveRecord::Base` then the following code could be used:
+
+~~~ruby
+# Not recommended
+class ActiveRecord::Base
+  connects_to database: {writing: :primary, reading: :primary_reader}
+end
+~~~
+
+## Rails 4 & 5
+
+### Installation
+
+Add to `Gemfile`
+
+~~~ruby
+gem "active_record_replica", "~>2.0"
+~~~
+
+### Configuration
 
 To enable replica reads for any environment just add a _replica:_ entry to database.yml
 along with all the usual ActiveRecord database configuration options.
 
 For Example:
 
-```yaml
-production:
+~~~yaml
+config: &config
   database: production
   username: username
   password: password
   encoding: utf8
   adapter:  mysql
-  host:     primary1
   pool:     50
+
+production:
+  <<: *config
+  host:     primary1
   replica:
-    database: production
-    username: username
-    password: password
-    encoding: utf8
-    adapter:  mysql
-    host:     replica1
-    pool:     50
-```
+    <<: *config
+    host:   replica1
+~~~
 
 Sometimes it is useful to turn on replica reads per host, for example to activate
 replica reads only on the linux host 'batch':
 
-```yaml
-production:
+~~~yaml
+config: &config
   database: production
   username: username
   password: password
   encoding: utf8
   adapter:  mysql
-  host:     primary1
   pool:     50
+
+production:
+  <<: *config
+  host:     primary1
 <% if `hostname`.strip == 'batch' %>
   replica:
-    database: production
-    username: username
-    password: password
-    encoding: utf8
-    adapter:  mysql
+    <<: *config
     host:     replica1
-    pool:     50
 <% end %>
-```
+~~~
 
 If there are multiple replicas, it is possible to randomly select a replica on startup
 to balance the load across the replicas:
 
-```yaml
-production:
+~~~yaml
+config: &config
   database: production
   username: username
   password: password
   encoding: utf8
   adapter:  mysql
-  host:     primary1
   pool:     50
+
+production:
+  <<: *config
+  host:     primary1
   replica:
-    database: production
-    username: username
-    password: password
-    encoding: utf8
-    adapter:  mysql
-    host:     <%= %w(replica1 replica2 replica3).sample %>
-    pool:     50
-```
+    <<: *config
+    host: <%= %w(replica1 replica2 replica3).sample %>
+~~~
 
 Replicas can also be assigned to specific hosts by using the hostname:
 
-```yaml
-production:
+~~~yaml
+config: &config
   database: production
   username: username
   password: password
   encoding: utf8
   adapter:  mysql
-  host:     primary1
   pool:     50
+
+production:
+  <<: *config
+  host:     primary1
   replica:
-    database: production
-    username: username
-    password: password
-    encoding: utf8
-    adapter:  mysql
-    host:     <%= `hostname`.strip == 'app1' ? 'replica1' : 'replica2' %>
-    pool:     50
-```
+    <<: *config
+    host:   <%= `hostname`.strip == 'app1' ? 'replica1' : 'replica2' %>
+~~~
 
 ## Set primary as default for Read
 
@@ -334,17 +373,17 @@ The default behavior can also set to read/write operations against primary datab
 
 Create an initializer file config/initializer/active_record_replica.rb to force read from primary:
 
-```yaml
-    ActiveRecordReplica.read_from_primary!
-```
+~~~ruby
+ActiveRecordReplica.read_from_primary!
+~~~
 
 Then use this method and supply block to read from the replica database:
 
-```yaml
+~~~ruby
 ActiveRecordReplica.read_from_replica do
-   User.count
+  User.count
 end
-```
+~~~
 
 ## Dependencies
 
@@ -360,16 +399,16 @@ This project uses [Semantic Versioning](http://semver.org/).
 
 2. Checkout your forked repository:
 
-    ```bash
-    git clone https://github.com/your_github_username/active_record_replica.git
-    cd active_record_replica
-    ```
+~~~shell
+git clone https://github.com/your_github_username/active_record_replica.git
+cd active_record_replica
+~~~
 
 3. Create branch for your contribution:
 
-    ```bash
-    git co -b your_new_branch_name
-    ```
+~~~shell
+git co -b your_new_branch_name
+~~~
 
 4. Make code changes.
 
@@ -377,9 +416,9 @@ This project uses [Semantic Versioning](http://semver.org/).
 
 6. Push to your fork origin.
 
-    ```bash
-    git push origin
-    ```
+~~~shell
+git push origin
+~~~
 
 7. Submit PR from the branch on your fork in Github.
 

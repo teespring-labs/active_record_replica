@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 #
 # ActiveRecord read from a replica
 #
@@ -11,41 +13,53 @@ module ActiveRecordReplica
   #   environment:
   #     In a non-Rails environment, supply the environment such as
   #     'development', 'production'
-  def self.install!(adapter_class = nil, environment = nil)
-    replica_config = ActiveRecord::Base.configurations[environment || Rails.env]["replica"]
+  def self.install!(base: ActiveRecord::Base, adapter_class: nil, environment: nil)
+    replica_config = base.configurations[environment || Rails.env]["replica"]
     unless replica_config
-      ActiveRecord::Base.logger.info("ActiveRecordReplica not installed since no replica database defined")
-      return
+      base.logger.info("ActiveRecordReplica not installed since no replica database defined")
+      return false
     end
 
     # When the DBMS is not available, an exception (e.g. PG::ConnectionBad) is raised
-    active_db_connection = ActiveRecord::Base.connection.active? rescue false
+    active_db_connection = begin
+      ActiveRecord::Base.connection.active?
+    rescue StandardError
+      false
+    end
+
     unless active_db_connection
-      ActiveRecord::Base.logger.info("ActiveRecord not connected so not installing ActiveRecordReplica")
+      base.logger.info("ActiveRecord not connected so not installing ActiveRecordReplica")
       return
     end
 
     version = ActiveRecordReplica::VERSION
-    ActiveRecord::Base.logger.info("ActiveRecordReplica.install! v#{version} Establishing connection to replica database")
-    Replica.establish_connection(replica_config)
+    if ActiveRecord::VERSION::MAJOR >= 6
+      base.logger.info("ActiveRecordReplica.install! v#{version} redirecting reads to role: :reading")
+    else
+      base.logger.info("ActiveRecordReplica.install! v#{version} Establishing connection to replica database")
+      Replica.establish_connection(replica_config)
+    end
 
     # Inject a new #select method into the ActiveRecord Database adapter
-    base = adapter_class || ActiveRecord::Base.connection.class
-    base.include(Extensions)
+    adapter_class ||= base.connection.class
+    adapter_class.include(Extensions)
+    true
   end
 
-  # Force reads for the supplied block to read from the primary database
-  # Only applies to calls made within the current thread
+  # Force reads for the supplied block to read from the primary database.
+  # Only applies to calls made within the current thread.
+  #
+  # Note:
+  #   * This block overrides any value set with read_from_replica!
   def self.read_from_primary(&block)
     thread_variable_yield(:active_record_replica, :primary, &block)
   end
 
+  # Force reads for the supplied block to read from the replica database.
+  # Only applies to calls made within the current thread.
   #
-  # The default behavior can also set to read/write operations against primary
-  # Create an initializer file config/initializer/active_record_replica.rb
-  # and set ActiveRecordReplica.read_from_primary! to force read from primary.
-  # Then use this method and supply block to read from the replica database
-  # Only applies to calls made within the current thread
+  # Note:
+  #   * This block overrides any value set with read_from_primary!
   def self.read_from_replica(&block)
     thread_variable_yield(:active_record_replica, :replica, &block)
   end
@@ -86,11 +100,15 @@ module ActiveRecordReplica
   # The default behavior can be set to read/write operations against primary.
   # Create an initializer file config/initializer/active_record_replica.rb
   # and set ActiveRecordReplica.read_from_primary! to force read from primary.
+  #
+  # Blocks of code can override this setting by calling .read_from_replica.
   def self.read_from_primary!
     @read_from_replica = false
   end
 
   # Force all subsequent reads in this process to read from the replica database.
+  #
+  # Blocks of code can override this setting by calling .read_from_primary.
   def self.read_from_replica!
     @read_from_replica = true
   end
@@ -114,8 +132,6 @@ module ActiveRecordReplica
   def self.ignore_transactions=(ignore_transactions)
     @ignore_transactions = ignore_transactions
   end
-
-  private
 
   def self.thread_variable_equals(key, value)
     Thread.current.thread_variable_get(key) == value
