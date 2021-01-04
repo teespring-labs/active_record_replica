@@ -18,13 +18,13 @@ module ActiveRecordReplica
     if ActiveRecord::VERSION::MAJOR >= 6
       def active_record_replica_select(select_method, sql, name = nil, *args)
         ActiveRecordReplica.read_from_primary do
-          # if current_role == ActiveRecord::Base.reading_role
-          #   connection.public_send(select_method, sql, "Replica: \#{name || 'SQL'}", *args)
-          # else
+          if ActiveRecord::Base.current_role == ActiveRecord::Base.reading_role
+            public_send(select_method, sql, "Replica: #{name || 'SQL'}", *args)
+          else
             ActiveRecord::Base.connected_to(role: ActiveRecord::Base.reading_role) do
-              connection.public_send(select_method, sql, "Replica: \#{name || 'SQL'}", *args)
+              ActiveRecord::Base.connection.public_send(select_method, sql, "Replica: #{name || 'SQL'}", *args)
             end
-          # end
+          end
         end
       end
     else

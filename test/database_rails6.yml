@@ -12,7 +12,9 @@ test:
   primary_reader:
     <<: *config
     database: test/db1_replica.sqlite3
-    replica: true
+    # In tests it writes the schema to the "replicated" database.
+    # Should set to true in production.
+    # replica: true
 
   consumers:
     <<: *config

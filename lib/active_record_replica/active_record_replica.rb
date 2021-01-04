@@ -14,10 +14,12 @@ module ActiveRecordReplica
   #     In a non-Rails environment, supply the environment such as
   #     'development', 'production'
   def self.install!(base: ActiveRecord::Base, adapter_class: nil, environment: nil)
-    replica_config = base.configurations[environment || Rails.env]["replica"]
-    unless replica_config
-      base.logger.info("ActiveRecordReplica not installed since no replica database defined")
-      return false
+    if ActiveRecord::VERSION::MAJOR < 6
+      replica_config = base.configurations[environment || Rails.env]["replica"]
+      unless replica_config
+        base.logger.info("ActiveRecordReplica not installed since no replica database defined")
+        return false
+      end
     end
 
     # When the DBMS is not available, an exception (e.g. PG::ConnectionBad) is raised

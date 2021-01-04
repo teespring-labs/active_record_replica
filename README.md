@@ -106,7 +106,7 @@ D, [2012-11-06T19:43:26.892697 #89002] DEBUG -- :    (0.9ms)  commit transaction
 
 ## Transactions
 
-By default ActiveRecordReplica detects when a call is inside a transaction and will
+By default Active Record Replica detects when a call is inside a transaction and will
 send all reads to the _primary_ when a transaction is active.
 
 It is now possible to send reads to database replicas and ignore whether currently
@@ -217,14 +217,14 @@ end
 ## Rails 6 and above
 
 Rails 6 natively supports multiple databases. It unfortunately only supports connection switching, so it cannot
-transparently redirect reads to a replica database the way ActiveRecordReplica does.
+transparently redirect reads to a replica database the way Active Record Replica does.
 
 ### Installation
 
 Add to `Gemfile`
 
 ~~~ruby
-gem "active_record_replica", "~>3.0"
+gem "active_record_replica"
 ~~~
 
 ### Configuration
@@ -279,7 +279,7 @@ end
 Add to `Gemfile`
 
 ~~~ruby
-gem "active_record_replica", "~>2.0"
+gem "active_record_replica"
 ~~~
 
 ### Configuration

@@ -16,31 +16,45 @@ l.level                           = ::Logger::DEBUG
 ActiveRecord::Base.logger         = l
 ActiveRecord::Base.configurations = YAML.load(ERB.new(IO.read(config_file_name)).result)
 
-# Define Schema in second database (replica)
-# Note: This is not be required when the primary database is being replicated to the replica db
-ActiveRecord::Base.establish_connection(ActiveRecord::Base.configurations["test"]["replica"])
+class ApplicationRecord < ActiveRecord::Base
+  self.abstract_class = true
 
-# Create table users in database active_record_replica_test
-ActiveRecord::Schema.define version: 0 do
-  create_table :users, force: true do |t|
-    t.string :name
-    t.string :address
+  if ActiveRecord::VERSION::MAJOR >= 6
+    connects_to database: { writing: :primary, reading: :primary_reader }
   end
 end
 
-# Define Schema in primary database
-ActiveRecord::Base.establish_connection(:test)
+# Active Record based model
+class User < ApplicationRecord
+end
 
 # Create table users in database active_record_replica_test
-ActiveRecord::Schema.define version: 0 do
-  create_table :users, force: true do |t|
-    t.string :name
-    t.string :address
+def create_schema
+  ActiveRecord::Schema.define version: 0 do
+    create_table :users, force: true do |t|
+      t.string :name
+      t.string :address
+    end
   end
 end
 
-# AR Model
-class User < ActiveRecord::Base
+# Define Schema in both databases.
+# Note: This is for testing purposes only and not needed by a Rails app.
+if ActiveRecord::VERSION::MAJOR >= 6
+  ApplicationRecord.connected_to(database: :primary_reader) do
+    create_schema
+  end
+  ApplicationRecord.connected_to(database: :primary) do
+    create_schema
+  end
+  ApplicationRecord.establish_connection(:test)
+else
+  ApplicationRecord.establish_connection(ActiveRecord::Base.configurations["test"]["replica"])
+  create_schema
+
+  # Define Schema in primary database
+  ApplicationRecord.establish_connection(:test)
+  create_schema
 end
 
 # Install ActiveRecord replica. Done automatically by railtie in a Rails environment
