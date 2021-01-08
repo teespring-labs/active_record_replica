@@ -14,4 +14,4 @@ gem "jdbc-sqlite3", platform: :jruby
 gem "sqlite3", platform: :ruby
 
 # gem "activerecord", "~> 5.2.0"
-gem "activerecord", "~> 6.0.3"
+gem "activerecord", "~> 6.1"

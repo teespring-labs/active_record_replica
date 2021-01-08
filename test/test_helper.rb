@@ -41,13 +41,13 @@ end
 # Define Schema in both databases.
 # Note: This is for testing purposes only and not needed by a Rails app.
 if ActiveRecord::VERSION::MAJOR >= 6
-  ApplicationRecord.connected_to(database: :primary_reader) do
+  ActiveRecord::Base.connected_to(database: :primary_reader) do
     create_schema
   end
-  ApplicationRecord.connected_to(database: :primary) do
+  ActiveRecord::Base.connected_to(database: :primary) do
     create_schema
   end
-  ApplicationRecord.establish_connection(:test)
+  ActiveRecord::Base.establish_connection(:test)
 else
   ActiveRecord::Base.establish_connection(ActiveRecord::Base.configurations["test"]["replica"])
   create_schema
