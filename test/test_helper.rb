@@ -49,11 +49,11 @@ if ActiveRecord::VERSION::MAJOR >= 6
   end
   ApplicationRecord.establish_connection(:test)
 else
-  ApplicationRecord.establish_connection(ActiveRecord::Base.configurations["test"]["replica"])
+  ActiveRecord::Base.establish_connection(ActiveRecord::Base.configurations["test"]["replica"])
   create_schema
 
   # Define Schema in primary database
-  ApplicationRecord.establish_connection(:test)
+  ActiveRecord::Base.establish_connection(:test)
   create_schema
 end
 
