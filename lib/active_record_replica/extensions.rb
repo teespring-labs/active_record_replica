@@ -22,10 +22,14 @@ module ActiveRecordReplica
             public_send(select_method, sql, "Replica: #{name || 'SQL'}", *args)
           else
             ActiveRecord::Base.connected_to(role: ActiveRecord::Base.reading_role) do
-              ActiveRecord::Base.connection.public_send(select_method, sql, "Replica: #{name || 'SQL'}", *args)
+              reader_connection.public_send(select_method, sql, "Replica: #{name || 'SQL'}", *args)
             end
           end
         end
+      end
+
+      def reader_connection
+        ActiveRecord::Base.connection
       end
     else
       def active_record_replica_select(select_method, sql, name = nil, *args)
