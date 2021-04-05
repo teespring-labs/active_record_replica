@@ -11,6 +11,7 @@ Gem::Specification.new do |spec|
   spec.version               = ActiveRecordReplica::VERSION
   spec.platform              = Gem::Platform::RUBY
   spec.authors               = ["Reid Morrison", "James Brady"]
+  spec.email                 = ["james@spri.ng"]
   spec.homepage              = "https://github.com/teespring/active_record_replica"
   spec.summary               = "Redirect ActiveRecord (Rails) reads to replica databases while ensuring all writes go to the primary database."
   spec.files                 = Dir["lib/**/*", "LICENSE.txt", "Rakefile", "README.md"]
