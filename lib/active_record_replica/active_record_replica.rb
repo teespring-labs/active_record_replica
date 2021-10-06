@@ -11,13 +11,7 @@ module ActiveRecordReplica
   #   environment:
   #     In a non-Rails environment, supply the environment such as
   #     'development', 'production'
-  def self.install!(adapter_class = nil, environment = nil)
-    replica_config = ActiveRecord::Base.configurations[environment || Rails.env]["replica"]
-    unless replica_config
-      ActiveRecord::Base.logger.info("ActiveRecordReplica not installed since no replica database defined")
-      return
-    end
-
+  def self.install!(adapter_class = nil, environment = nil, roles = ['slave'])
     # When the DBMS is not available, an exception (e.g. PG::ConnectionBad) is raised
     active_db_connection = ActiveRecord::Base.connection.active? rescue false
     unless active_db_connection
@@ -25,19 +19,42 @@ module ActiveRecordReplica
       return
     end
 
-    version = ActiveRecordReplica::VERSION
-    ActiveRecord::Base.logger.info("ActiveRecordReplica.install! v#{version} Establishing connection to replica database")
-    Replica.establish_connection(replica_config)
-
     # Inject a new #select method into the ActiveRecord Database adapter
     base = adapter_class || ActiveRecord::Base.connection.class
     base.include(Extensions)
+
+    @roles = [:primary] + roles.map(&:to_sym)
+    roles.each do |role|
+      config = ActiveRecord::VERSION::MAJOR >= 6 && ActiveRecord::VERSION::MINOR >= 1 ? role.to_sym : role.to_s
+      replica_config = ActiveRecord::Base.configurations[environment || Rails.env][config]
+      unless replica_config
+        ActiveRecord::Base.logger.info("ActiveRecordReplica not installed since no replica database defined")
+        next
+      end
+
+      version = ActiveRecordReplica::VERSION
+      ActiveRecord::Base.logger.info("ActiveRecordReplica.install! v#{version} Establishing connection to replica database")
+
+      replica_reader_klass = Class.new(ActiveRecord::Base) do
+        # Prevent Rails from trying to create an instance of this model
+        self.abstract_class = true
+
+        # Since this is an abstract class so it has no columns
+        def self.columns
+          []
+        end
+      end
+
+      ActiveRecordReplica.const_set("Replica_#{role}", replica_reader_klass)
+
+      replica_reader_klass.establish_connection(replica_config)
+    end
   end
 
   # Force reads for the supplied block to read from the primary database
   # Only applies to calls made within the current thread
   def self.read_from_primary(&block)
-    thread_variable_yield(:active_record_replica, :primary, &block)
+    read_from(:primary, &block)
   end
 
   #
@@ -46,8 +63,9 @@ module ActiveRecordReplica
   # and set ActiveRecordReplica.read_from_primary! to force read from primary.
   # Then use this method and supply block to read from the replica database
   # Only applies to calls made within the current thread
-  def self.read_from_replica(&block)
-    thread_variable_yield(:active_record_replica, :replica, &block)
+  def self.read_from(role, &block)
+    assert_role(role)
+    thread_variable_yield(:active_record_replica, role, &block)
   end
 
   # When only reading from a replica it is important to prevent entering any into
@@ -66,18 +84,17 @@ module ActiveRecordReplica
 
   # Whether this thread is currently forcing all reads to go against the primary database
   def self.read_from_primary?
-    !read_from_replica?
+    read_from?(:primary)
   end
 
   # Whether this thread is currently forcing all reads to go against the replica database
-  def self.read_from_replica?
-    case Thread.current.thread_variable_get(:active_record_replica)
-    when :primary
-      false
-    when :replica
-      true
+  def self.read_from?(role)
+    role = role.to_sym
+    assert_role(role)
+    if Thread.current.thread_variable_get(:active_record_replica)
+      Thread.current.thread_variable_get(:active_record_replica) == role
     else
-      @read_from_replica
+      @read_from == role
     end
   end
 
@@ -87,12 +104,18 @@ module ActiveRecordReplica
   # Create an initializer file config/initializer/active_record_replica.rb
   # and set ActiveRecordReplica.read_from_primary! to force read from primary.
   def self.read_from_primary!
-    @read_from_replica = false
+    read_from!(:primary)
   end
 
   # Force all subsequent reads in this process to read from the replica database.
-  def self.read_from_replica!
-    @read_from_replica = true
+  def self.read_from!(role)
+    role = role.to_sym
+    assert_role(role)
+    @read_from = role
+  end
+
+  def self.current_role
+    Thread.current.thread_variable_get(:active_record_replica) || @read_from
   end
 
   # Whether any attempt to start a transaction should result in an exception
@@ -135,6 +158,9 @@ module ActiveRecordReplica
     end
   end
 
+  def self.assert_role(role)
+    raise "Undefined role: #{role.inspect}" unless @roles.include?(role)
+  end
+
   @ignore_transactions = false
-  @read_from_replica   = true
 end

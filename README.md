@@ -341,7 +341,7 @@ Create an initializer file config/initializer/active_record_replica.rb to force 
 Then use this method and supply block to read from the replica database:
 
 ```yaml
-ActiveRecordReplica.read_from_replica do
+ActiveRecordReplica.read_from(:replica) do
    User.count
 end
 ```
