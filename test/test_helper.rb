@@ -14,7 +14,7 @@ ActiveRecord::Base.configurations = YAML::load(ERB.new(IO.read('test/database.ym
 
 # Define Schema in second database (replica)
 # Note: This is not be required when the primary database is being replicated to the replica db
-ActiveRecord::Base.establish_connection(ActiveRecord::Base.configurations['test']['replica'])
+ActiveRecord::Base.establish_connection(ActiveRecord::Base.configurations['test'].symbolize_keys[:slave])
 
 # Create table users in database active_record_replica_test
 ActiveRecord::Schema.define :version => 0 do

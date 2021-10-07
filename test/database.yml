@@ -5,7 +5,7 @@ test:
   timeout:  5000
   # Make the replica a separate database that is not replicated to ensure reads
   # and writes go to the appropriate databases
-  replica:
+  slave:
     adapter:  sqlite3
     database: test/test_replica.sqlite3
     pool:     5

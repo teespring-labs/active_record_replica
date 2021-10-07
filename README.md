@@ -237,7 +237,7 @@ gem install active_record_replica
 
 ## Configuration
 
-To enable replica reads for any environment just add a _replica:_ entry to database.yml
+To enable replica reads for any environment just add a _slave:_ entry to database.yml
 along with all the usual ActiveRecord database configuration options.
 
 For Example:
@@ -251,7 +251,7 @@ production:
   adapter:  mysql
   host:     primary1
   pool:     50
-  replica:
+  slave:
     database: production
     username: username
     password: password
@@ -274,7 +274,7 @@ production:
   host:     primary1
   pool:     50
 <% if `hostname`.strip == 'batch' %>
-  replica:
+  slave:
     database: production
     username: username
     password: password
@@ -297,7 +297,7 @@ production:
   adapter:  mysql
   host:     primary1
   pool:     50
-  replica:
+  slave:
     database: production
     username: username
     password: password
@@ -318,7 +318,7 @@ production:
   adapter:  mysql
   host:     primary1
   pool:     50
-  replica:
+  slave:
     database: production
     username: username
     password: password
@@ -341,7 +341,7 @@ Create an initializer file config/initializer/active_record_replica.rb to force 
 Then use this method and supply block to read from the replica database:
 
 ```yaml
-ActiveRecordReplica.read_from_replica do
+ActiveRecordReplica.read_from(:slave) do
    User.count
 end
 ```

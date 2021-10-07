@@ -12,7 +12,7 @@ module ActiveRecordReplica
   #     In a non-Rails environment, supply the environment such as
   #     'development', 'production'
   def self.install!(adapter_class = nil, environment = nil)
-    replica_config = ActiveRecord::Base.configurations[environment || Rails.env]["replica"]
+    replica_config = ActiveRecord::Base.configurations[environment || Rails.env].symbolize_keys[:slave]
     unless replica_config
       ActiveRecord::Base.logger.info("ActiveRecordReplica not installed since no replica database defined")
       return
