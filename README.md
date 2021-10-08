@@ -346,6 +346,22 @@ ActiveRecordReplica.read_from(:slave) do
 end
 ```
 
+## Setup multiple slaves
+
+Create an initializer file config/initializer/active_record_replica.rb with following content:
+
+```ruby
+ActiveRecordReplica.install!(nil, nil, [:slave, :slow_slave], default: :slave)
+```
+
+Then use this method and supply block to read from the particular replica database:
+
+```ruby
+ActiveRecordReplica.read_from(:slow_slave) do
+   User.count
+end
+```
+
 ## Dependencies
 
 See [.travis.yml](https://github.com/reidmorrison/active_record_replica/blob/master/.travis.yml) for the list of tested Ruby platforms

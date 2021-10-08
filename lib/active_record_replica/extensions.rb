@@ -7,16 +7,15 @@ module ActiveRecordReplica
       class_eval <<-RUBY, __FILE__, __LINE__ + 1
         def #{select_method}(sql, name = nil, *args)
           return super if active_record_replica_read_from_primary?
-  
+
+          current_role = ActiveRecordReplica.current_role
+
           ActiveRecordReplica.read_from_primary do
-            reader_connection.#{select_method}(sql, "Replica: \#{name || 'SQL'}", *args)
+            ActiveRecordReplica.const_get("Replica_\#{current_role}").
+              connection.#{select_method}(sql, "Replica: [\#{current_role}] \#{name || 'SQL'}", *args)
           end
         end
       RUBY
-    end
-
-    def reader_connection
-      Replica.connection
     end
 
     def begin_db_transaction

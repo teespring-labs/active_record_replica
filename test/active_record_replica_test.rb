@@ -19,7 +19,7 @@ class ActiveRecordReplicaTest < Minitest::Test
 
     before do
       ActiveRecordReplica.ignore_transactions = false
-      ActiveRecordReplica.read_from_replica!
+      ActiveRecordReplica.read_from!(:slave)
       User.delete_all
     end
 
@@ -65,7 +65,7 @@ class ActiveRecordReplicaTest < Minitest::Test
 
       User.transaction do
         # The delete_all in setup should have cleared the table
-        assert_equal 0, User.count
+        assert_equal 0, User.where(name: user_name, address: address).count
 
         # Read from Primary
         assert_equal 0, User.where(name: user_name, address: address).count
@@ -97,15 +97,35 @@ class ActiveRecordReplicaTest < Minitest::Test
       end
     end
 
-    describe ".read_from_replica?" do
+    it "can switch between different replicas" do
+      ActiveRecordReplica.read_from_primary do
+        assert_equal 0, User.count
+      end
+      ActiveRecordReplica.read_from(:slave) do
+        assert_equal 'slave', User.first.name
+      end
+      ActiveRecordReplica.read_from(:slow_slave) do
+        assert_equal 'slow slave', User.first.name
+      end
+    end
+
+    describe ".read_from?" do
       it "is true when global replica flag is set" do
-        ActiveRecordReplica.read_from_replica!
-        assert ActiveRecordReplica.read_from_replica?
+        ActiveRecordReplica.read_from!(:slave)
+        assert ActiveRecordReplica.read_from?(:slave)
+        refute ActiveRecordReplica.read_from?(:slow_slave)
+      end
+
+      it "is true when global replica flag is set" do
+        ActiveRecordReplica.read_from!(:slow_slave)
+        assert ActiveRecordReplica.read_from?(:slow_slave)
+        refute ActiveRecordReplica.read_from?(:slave)
       end
 
       it "is false when reading from replica" do
         ActiveRecordReplica.read_from_primary!
-        refute ActiveRecordReplica.read_from_replica?
+        refute ActiveRecordReplica.read_from?(:slave)
+        refute ActiveRecordReplica.read_from?(:slow_slave)
       end
     end
 
@@ -116,24 +136,35 @@ class ActiveRecordReplicaTest < Minitest::Test
       end
 
       it "is false when reading from replica" do
-        ActiveRecordReplica.read_from_replica!
+        ActiveRecordReplica.read_from!(:slave)
         refute ActiveRecordReplica.read_from_primary?
       end
     end
 
-    describe ".read_from_replica" do
+    describe ".read_from" do
       it "works with global replica flag" do
-        ActiveRecordReplica.read_from_replica!
-        ActiveRecordReplica.read_from_replica do
-          assert ActiveRecordReplica.read_from_replica?
+        ActiveRecordReplica.read_from!(:slave)
+        ActiveRecordReplica.read_from(:slave) do
+          assert ActiveRecordReplica.read_from?(:slave)
+          refute ActiveRecordReplica.read_from?(:slow_slave)
           refute ActiveRecordReplica.read_from_primary?
         end
       end
 
       it "overwrites global replica flag" do
         ActiveRecordReplica.read_from_primary!
-        ActiveRecordReplica.read_from_replica do
-          assert ActiveRecordReplica.read_from_replica?
+        ActiveRecordReplica.read_from(:slave) do
+          assert ActiveRecordReplica.read_from?(:slave)
+          refute ActiveRecordReplica.read_from?(:slow_slave)
+          refute ActiveRecordReplica.read_from_primary?
+        end
+      end
+
+      it "overwrites global replica flag" do
+        ActiveRecordReplica.read_from_primary!
+        ActiveRecordReplica.read_from(:slow_slave) do
+          assert ActiveRecordReplica.read_from?(:slow_slave)
+          refute ActiveRecordReplica.read_from?(:slave)
           refute ActiveRecordReplica.read_from_primary?
         end
       end
@@ -144,15 +175,17 @@ class ActiveRecordReplicaTest < Minitest::Test
         ActiveRecordReplica.read_from_primary!
         ActiveRecordReplica.read_from_primary do
           assert ActiveRecordReplica.read_from_primary?
-          refute ActiveRecordReplica.read_from_replica?
+          refute ActiveRecordReplica.read_from?(:slave)
+          refute ActiveRecordReplica.read_from?(:slow_slave)
         end
       end
 
       it "overwrites global replica flag" do
-        ActiveRecordReplica.read_from_replica!
+        ActiveRecordReplica.read_from!(:slave)
         ActiveRecordReplica.read_from_primary do
           assert ActiveRecordReplica.read_from_primary?
-          refute ActiveRecordReplica.read_from_replica?
+          refute ActiveRecordReplica.read_from?(:slave)
+          refute ActiveRecordReplica.read_from?(:slow_slave)
         end
       end
     end

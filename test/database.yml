@@ -10,3 +10,8 @@ test:
     database: test/test_replica.sqlite3
     pool:     5
     timeout:  5000
+  slow_slave:
+    adapter:  sqlite3
+    database: test/test_slow_replica.sqlite3
+    pool:     5
+    timeout:  5000
