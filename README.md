@@ -261,6 +261,12 @@ production:
     pool:     50
 ```
 
+Then create an initializer file config/initializer/active_record_replica.rb with following content:
+
+```ruby
+ActiveRecordReplica.install!
+```
+
 Sometimes it is useful to turn on replica reads per host, for example to activate
 replica reads only on the linux host 'batch':
 
